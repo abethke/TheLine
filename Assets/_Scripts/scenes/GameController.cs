@@ -6,6 +6,8 @@ using UnityEngine.EventSystems;
 using UnityEngine.Pool;
 using static SavedValues;
 using static Constants;
+using UnityEngine.UI;
+using Unity.VisualScripting;
 
 public class GameController : MonoBehaviour
 {
@@ -15,10 +17,14 @@ public class GameController : MonoBehaviour
         Utils.Log("Starting Application", debugAppLogic);
         refs.mainMenu.gameObject.SetActive(false);
         refs.gameOver.gameObject.SetActive(false);
+        _powerPickup.gameObject.SetActive(false);
+        _powerDisplayContainer.gameObject.SetActive(false);
         instructions.gameObject.SetActive(true);
 
         // get references
         _playerRect = refs.player.GetComponent<RectTransform>();
+        _playerCollider = refs.player.GetComponent<CircleCollider2D>();
+        _playerImage = refs.player.GetComponent<Image>();
 
         CalculateValuesBasedOnScreenResolution();
         ConfigureElementsBasedOnScreenResolution();
@@ -40,7 +46,6 @@ public class GameController : MonoBehaviour
 
         float playerSize = _wallWidth * PLAYER_SIZE;
 
-        _playerRect.sizeDelta = playerSize * Vector2.one;
         _playerHalfWidth = playerSize * 0.5f;
         _playerStartX = canvasWidth * 0.5f - _playerHalfWidth;
         _playerY = _wallHeight * 2.5f;
@@ -59,18 +64,30 @@ public class GameController : MonoBehaviour
         Utils.Log($"Walls build from: {_buildY}", debugResolutionCalculations);
         Utils.Log($"Walls removed at: {_removeY}", debugResolutionCalculations);
 
-        CircleCollider2D playerCollider = _playerRect.GetComponent<CircleCollider2D>();
-        playerCollider.offset = playerSize * 0.5f * Vector2.one;
-        playerCollider.radius = playerSize * 0.5f;
+        // resize the player
+        _playerRect.sizeDelta = playerSize * Vector2.one;
+        _playerCollider.offset = (playerSize - PLAYER_COLLIDER_SIZE_REDUCTION) * 0.5f * Vector2.one;
+        _playerCollider.radius = (playerSize - PLAYER_COLLIDER_SIZE_REDUCTION) * 0.5f;
+
+        // resize the power pickup
+        _powerPickup.rectTransform.sizeDelta = playerSize * 0.5f * Vector2.one;
+        _powerPickup.collider.offset = playerSize * 0.5f * Vector2.one;
+        _powerPickup.collider.size = playerSize * Vector2.one;
     }
     protected void ConfigureElementsBasedOnScreenResolution()
     {
         // position player at start
         _playerRect.anchoredPosition = new Vector2(_playerStartX, _playerY);
 
+        float instructionsHeight = INSTRUCTIONS_HEIGHT * _wallHeight;
+        float instructionsY = instructionsHeight;
         RectTransform instructionsRect = instructions.gameObject.RectTransform();
-        instructionsRect.sizeDelta = instructionsRect.sizeDelta.SetY(INSTRUCTIONS_HEIGHT * _wallHeight);
-        instructionsRect.anchoredPosition = new Vector2(0, INSTRUCTIONS_OFFSET * _wallHeight);
+        instructionsRect.sizeDelta = instructionsRect.sizeDelta.SetY(instructionsY);
+        instructionsRect.anchoredPosition = new Vector2(0, instructionsY);
+
+        RectTransform powerDisplayRect = _powerDisplayContainer.RectTransform();
+        powerDisplayRect.sizeDelta = powerDisplayRect.sizeDelta.SetY(instructionsHeight * 0.5f);
+        powerDisplayRect.anchoredPosition = new Vector2(0, instructionsY + instructionsHeight);
     }
     void OnDestroy()
     {
@@ -167,6 +184,12 @@ public class GameController : MonoBehaviour
             wall.rectTransform.anchoredPosition = wall.rectTransform.anchoredPosition.PlusY(_moveSpeed * Time.fixedDeltaTime);
         }
 
+        if (_powerPickup.gameObject.activeSelf)
+        {
+            _powerPickup.rectTransform.anchoredPosition = _powerPickup.rectTransform.anchoredPosition.PlusY(_moveSpeed * Time.fixedDeltaTime);
+        }
+
+
         UpdateForLineRemoval();
         UpdateForNewLineCreation();
     }
@@ -208,14 +231,28 @@ public class GameController : MonoBehaviour
             _wallPool.Release(wall);
         }
 
+        if (_playerPowerRoutine != null)
+        {
+            StopCoroutine(_playerPowerRoutine);
+            _playerPowerRoutine = null;
+        }
+
         _playerRect.anchoredPosition = new Vector2(_playerStartX, _playerY);
+        _playerImage.color = PLAYER_COLOUR;
         pathConnection = 3;
+        lastPathConnection = 3;
+        segmentsUntilPowerUp = 17;
         GenerateStartWalls();
     }
     #endregion Game Loop
     #region Road Generation
     protected void UpdateForNewLineCreation()
     {
+        if (_powerPickup.rectTransform.anchoredPosition.y < _removeY)
+        {
+            _powerPickup.gameObject.SetActive(false);
+        }
+
         if (walls.Count == 0)
             return;
 
@@ -284,11 +321,11 @@ public class GameController : MonoBehaviour
         }
         else
         {
-            Debug.Log($"Connecting from: " + pathConnection);
+            //Debug.Log($"Connecting from: " + pathConnection);
             Vector2Int pathways = PATHS_BY_POSITION[pathConnection - 1];
-            Debug.Log($"segment paths: {pathways}");
+            //Debug.Log($"segment paths: {pathways}");
             int offset = Random.Range(pathways.x, pathways.y);
-            Debug.Log($"offset: {offset}");
+            //Debug.Log($"offset: {offset}");
 
             int start = pathConnection;
             int end = pathConnection + offset;
@@ -311,8 +348,112 @@ public class GameController : MonoBehaviour
 
             pathConnection = end;
         }
+
+        // no power spawning while on is active
+        if (_playerPowerRoutine != null || _powerPickup.gameObject.activeSelf)
+            return;
+
+        segmentsUntilPowerUp--;
+        if (segmentsUntilPowerUp > 0)
+            return;
+
+        Debug.Log("resetting powerup counter");
+        segmentsUntilPowerUp = Random.Range(17, 35);
+
+        SpawnPowerUpAt(pathConnection, _buildY);
+    }
+    protected void SpawnPowerUpAt(int in_position, float in_y)
+    {
+        _powerPickup.rectTransform.anchoredPosition = new Vector2(_wallWidth * 0.5f + in_position * _wallWidth - _powerPickup.rectTransform.sizeDelta.x * 0.5f, in_y);
+        _powerPickup.mode = (Random.Range(0, 2) == 0) ? PowerPickup.Modes.Invincible : PowerPickup.Modes.Small;
+        _powerPickup.gameObject.SetActive(true);
+        Utils.Log($"Spawning powerup[{_powerPickup.mode}] at: {in_position}", debugAppLogic);
     }
     #endregion Road Generation
+    #region Powerups
+    public void ActivatePower()
+    {
+        Debug.Log("Activating power: " + _powerPickup.mode);
+        _powerPickup.gameObject.SetActive(false);
+        _powerDisplay.color = TEXT_YELLOW;
+
+        if (_powerPickup.mode == PowerPickup.Modes.Invincible)
+        {
+            _playerPowerRoutine = StartCoroutine(InvincibleRoutine());
+        }
+        else
+        {
+            _playerPowerRoutine = StartCoroutine(SmallRoutine());
+        }
+    }
+    protected IEnumerator InvincibleRoutine()
+    {
+        Utils.Log("[Power Up] INVINCIBLE!", debugAppLogic);
+        float startedAt = Time.time;
+        float blinkDuration = 0.15f;
+
+        invincible = true;
+        _powerDisplay.text = "BREAK THE WALLS!";
+        _powerDisplayContainer.SetActive(true);
+
+        while (Time.time - startedAt <= INVINCIBLE_DURATION_IN_SECONDS)
+        {
+            // blink player
+            // allows for percent over 100% by design
+            float percent = (Time.time - startedAt) / blinkDuration;
+            float lerp = Mathf.Abs(Mathf.Sin(percent));
+            _playerImage.color = Color.Lerp(PLAYER_COLOUR, SECONDARY_YELLOW, lerp);
+
+            yield return new WaitForFixedUpdate();
+        }
+
+        _powerDisplay.text = "";
+        _powerDisplayContainer.SetActive(false);
+        invincible = false;
+
+        _playerImage.color = PLAYER_COLOUR;
+
+        _playerPowerRoutine = null;
+    }
+    protected IEnumerator SmallRoutine()
+    {
+        Utils.Log("[Power Up] Small!", debugAppLogic);
+
+        float playerSize = _wallWidth * PLAYER_SIZE * 0.5f;
+
+        _playerRect.sizeDelta = playerSize * Vector2.one;
+        _playerCollider.offset = (playerSize - PLAYER_COLLIDER_SIZE_REDUCTION) * 0.5f * Vector2.one;
+        _playerCollider.radius = (playerSize - PLAYER_COLLIDER_SIZE_REDUCTION) * 0.5f;
+        _playerHalfWidth = playerSize * 0.5f;
+
+        _powerDisplayContainer.SetActive(true);
+
+        float startedAt = Time.time;
+        while (Time.time - startedAt <= SMALL_DURATION_IN_SECONDS)
+        {
+            int displayTime = Mathf.FloorToInt(SMALL_DURATION_IN_SECONDS - (Time.time - startedAt));
+            _powerDisplay.text = $"{displayTime}sec";
+            _powerDisplay.color = (displayTime > 4) ? TEXT_YELLOW : TEXT_RED;
+            yield return new WaitForFixedUpdate();
+        }
+
+        _powerDisplay.text = "";
+        _powerDisplayContainer.SetActive(false);
+
+        playerSize = _wallWidth * PLAYER_SIZE;
+
+        _playerRect.sizeDelta = playerSize * Vector2.one;
+        _playerCollider.offset = (playerSize - PLAYER_COLLIDER_SIZE_REDUCTION) * 0.5f * Vector2.one;
+        _playerCollider.radius = (playerSize - PLAYER_COLLIDER_SIZE_REDUCTION) * 0.5f;
+        _playerHalfWidth = playerSize * 0.5f;
+
+        _playerPowerRoutine = null;
+    }
+    #endregion Powerups
+    public void RemoveWall(WallSegement in_wall)
+    {
+        _wallPool.Release(in_wall);
+    }
     public void ShowMenu()
     {
         // stop overlap of screens if game over is already occuring
@@ -323,10 +464,6 @@ public class GameController : MonoBehaviour
         state = GameStates.WaitingToStart;
         refs.mainMenu.gameObject.SetActive(true);
     }
-    public void RemoveWall(WallSegement in_wall)
-    {
-        _wallPool.Release(in_wall);
-    }
     public string ScoreForDisplay
     {
         get
@@ -336,6 +473,9 @@ public class GameController : MonoBehaviour
     }
 
     protected RectTransform _playerRect;
+    protected CircleCollider2D _playerCollider;
+    protected Image _playerImage;
+
     protected float _scaleFactorForResolution;
     protected float _playerStartX;
     protected float _playerY;
@@ -346,8 +486,8 @@ public class GameController : MonoBehaviour
 
     protected IObjectPool<WallSegement> _wallPool;
 
-     protected bool _forceStraightSpawn;
-    
+    protected bool _forceStraightSpawn;
+
     protected Coroutine _playerPowerRoutine;
 
     public enum GameStates
@@ -363,7 +503,8 @@ public class GameController : MonoBehaviour
     public bool debugUserInput;
 
     [Header("Configuration")]
-    public GameObject _wallPrefab;
+    [SerializeField]
+    protected GameObject _wallPrefab;
 
     [Header("Dynamic")]
     public GameStates state = GameStates.WaitingToStart;
@@ -371,6 +512,7 @@ public class GameController : MonoBehaviour
     public int segmentsUntilPowerUp = 10;
     public bool invincible;
     public int pathConnection = 3;
+    public int lastPathConnection = 3;
     public List<WallSegement> walls = new List<WallSegement>();
     [Space(20)]
     public float _playerHalfWidth;
@@ -379,7 +521,8 @@ public class GameController : MonoBehaviour
     public float _moveSpeed;
 
     [Header("References")]
-    public Canvas canvas;
+    [SerializeField]
+    protected Canvas canvas;
     [SerializeField]
     protected SharedReferences refs;
     [SerializeField]
@@ -388,4 +531,10 @@ public class GameController : MonoBehaviour
     protected TMP_Text scoreDisplay;
     [SerializeField]
     protected Transform _wallContainer;
+    [SerializeField]
+    protected PowerPickup _powerPickup;
+    [SerializeField]
+    protected GameObject _powerDisplayContainer;
+    [SerializeField]
+    protected TMP_Text _powerDisplay;
 }

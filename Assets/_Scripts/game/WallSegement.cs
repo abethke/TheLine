@@ -1,7 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
-
+using static Constants;
 public class WallSegement : MonoBehaviour
 {
     void Start() { }
@@ -18,7 +18,7 @@ public class WallSegement : MonoBehaviour
     {
         if (refs.game.state == GameController.GameStates.ActiveGame)
         {
-            Debug.Log("Colliding with: " + other.gameObject.name);
+            //Debug.Log("[WallSegment] Colliding with: " + other.gameObject.name);
             if (refs.game.invincible)
             {
                 refs.game.RemoveWall(this);
@@ -48,9 +48,6 @@ public class WallSegement : MonoBehaviour
             yield return new WaitForFixedUpdate();
         }
     }
-
-    static protected Color BLOCK_COLOUR = new Color().FromHex("f71a3f");
-    static protected Color BLOCK_HIT_COLOUR = Color.yellow;
 
     protected Coroutine _blink;
 

@@ -5,6 +5,12 @@ static public class Constants
     // These values were taken from the original game based on observation
     public const int WALL_ROWS = 7;
     public const int WALL_COLS = 7;
+    public static readonly Color PLAYER_COLOUR = new Color().FromHex("0088F6");
+    public static readonly Color BLOCK_COLOUR = new Color().FromHex("f71a3f");
+    public static readonly Color BLOCK_HIT_COLOUR = Color.yellow;
+    public static readonly Color SECONDARY_YELLOW = new Color().FromHex("f4bd00");
+    public static readonly Color TEXT_RED = new Color().FromHex("f71a3f");
+    public static readonly Color TEXT_YELLOW = new Color().FromHex("f4bd00");
 
     // the initial wall layout
     public static readonly string[] LAYOUT_AT_START =
@@ -27,6 +33,13 @@ static public class Constants
     public const float INSTRUCTIONS_HEIGHT = 0.8f;
     public const float PLAYER_SIZE = 0.5f;
 
+    // magic number for  player collider
+    public const float PLAYER_COLLIDER_SIZE_REDUCTION = 1f;
+
     // timer
     public const float FADE_DURATION_IN_SECONDS = 0.3f;
+    public const float SMALL_DURATION_IN_SECONDS = 10f;
+    public const float INVINCIBLE_DURATION_IN_SECONDS = 6f;
+
+    public const string PLAYER_INSTANCE_NAME = "Player";
 }
