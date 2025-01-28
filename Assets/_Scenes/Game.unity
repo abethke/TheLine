@@ -4294,16 +4294,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed934709e45e34740bd84e4928e63787, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  debugResolutionCalculations: 0
+  debugResolutionCalculations: 1
   debugAppLogic: 1
+  debugRoadGeneration: 1
   debugUserInput: 0
   _wallPrefab: {fileID: 327651391079462522, guid: 15094baa75e77eb40992aa98b267766b, type: 3}
+  numStraightsInQueue: 10
+  numBendsInQueue: 15
+  _numSegmentsUntilPowerUpMin: 17
+  _numSegmentsUntilPowerUpMax: 35
   state: 0
   score: 0
-  segmentsUntilPowerUp: 17
   invincible: 0
   pathConnection: 3
-  lastPathConnection: 3
+  lastPathDelta: 0
+  segmentsUntilPowerUp: 17
   walls: []
   _playerHalfWidth: 0
   _wallWidth: 0

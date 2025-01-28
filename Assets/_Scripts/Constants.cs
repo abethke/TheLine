@@ -12,18 +12,21 @@ static public class Constants
     public static readonly Color TEXT_RED = new Color().FromHex("f71a3f");
     public static readonly Color TEXT_YELLOW = new Color().FromHex("f4bd00");
 
+    public static int BEND_SEGMENT = 0;
+    public static int STRAIGHT_SEGMENT = 1;
+
     // the initial wall layout
     public static readonly string[] LAYOUT_AT_START =
         new string[] { "1000001", "1000001", "1100011", "1100011", "1110111", "1110111" };
 
     public static readonly Vector2Int[] PATHS_BY_POSITION = new Vector2Int[]
     {
-        new(0,5),
-        new(-1,4),
-        new(-2,3),
-        new(-3,2),
-        new(-4,1),
-        new(-5,0)
+        new(0,4),
+        new(-1,3),
+        new(-2,2),
+        new(-2,2),
+        new(-3,1),
+        new(-4,0)
     };
 
     public const float MOVEMENT_SPEED = 2.5f;

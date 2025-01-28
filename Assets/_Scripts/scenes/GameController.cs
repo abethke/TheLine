@@ -7,7 +7,6 @@ using UnityEngine.Pool;
 using static SavedValues;
 using static Constants;
 using UnityEngine.UI;
-using Unity.VisualScripting;
 
 public class GameController : MonoBehaviour
 {
@@ -31,6 +30,7 @@ public class GameController : MonoBehaviour
         ConfigureElementsBasedOnScreenResolution();
 
         InitObjectPool();
+        CreateRoadGenerationData();
         GenerateStartWalls();
     }
     protected void CalculateValuesBasedOnScreenResolution()
@@ -99,7 +99,7 @@ public class GameController : MonoBehaviour
     protected void InitObjectPool()
     {
         // max pool is a full screen of wall segments minus the one we're in and
-        // the one we're moving to plus the build row, as the absolute maximum needed
+        // the one we're moving to, plus the build row
         int maxPoolSize = (WALL_ROWS + 1) * WALL_COLS - 2;
         Utils.Log("Initializing object pool for walls", debugAppLogic);
         _wallPool = new ObjectPool<WallSegement>(CreateWall, OnTakeFromPool, OnReturnToPool, OnDestroyPooledObject, true, maxPoolSize);
@@ -179,6 +179,17 @@ public class GameController : MonoBehaviour
                 // do nothing
                 break;
         }
+
+#if UNITY_EDITOR
+        if (Input.GetKey(KeyCode.Space))
+        {
+            Time.timeScale = 5f;
+        }
+        else
+        {
+            Time.timeScale = 1f;
+        }
+#endif
     }
     void FixedUpdate()
     {
@@ -195,7 +206,6 @@ public class GameController : MonoBehaviour
         {
             _powerPickup.rectTransform.anchoredPosition = _powerPickup.rectTransform.anchoredPosition.PlusY(_moveSpeed * Time.fixedDeltaTime);
         }
-
 
         UpdateForLineRemoval();
         UpdateForNewLineCreation();
@@ -249,12 +259,27 @@ public class GameController : MonoBehaviour
         _powerDisplayContainer.gameObject.SetActive(false);
 
         pathConnection = 3;
-        lastPathConnection = 3;
-        segmentsUntilPowerUp = 17;
+        segmentsUntilPowerUp = Random.Range(_numSegmentsUntilPowerUpMin, _numSegmentsUntilPowerUpMax);
         GenerateStartWalls();
     }
     #endregion Game Loop
     #region Road Generation
+    protected void CreateRoadGenerationData()
+    {
+        // create the data for road generation 
+        int index = 0;
+        _segmentQueue = new int[numBendsInQueue + numStraightsInQueue];
+        for (int i = 0; i < numBendsInQueue; i++)
+        {
+            _segmentQueue[index] = BEND_SEGMENT;
+            index++;
+        }
+        for (int i = 0; i < numStraightsInQueue; i++)
+        {
+            _segmentQueue[index] = STRAIGHT_SEGMENT;
+            index++;
+        }
+    }
     protected void UpdateForNewLineCreation()
     {
         if (_powerPickup.rectTransform.anchoredPosition.y < _removeY)
@@ -270,7 +295,7 @@ public class GameController : MonoBehaviour
             return;
 
         _buildY = lastWall.anchoredPosition.y + _wallHeight;
-        GenerateRandomLine();
+        GenerateNextRoadSegment();
     }
     protected void UpdateForLineRemoval()
     {
@@ -299,6 +324,10 @@ public class GameController : MonoBehaviour
         // reset  the build position to default
         _buildY = _buildYStart;
 
+        _segmentQueue.Shuffle();
+        _segmentIndex = 0;
+        Utils.Log($"Shuffled road segment queue: {_segmentQueue.ToStringForReal()}", debugRoadGeneration);
+
         for (int i = 0; i < LAYOUT_AT_START.Length; i++)
         {
             for (int j = 0; j < LAYOUT_AT_START[i].Length; j++)
@@ -312,14 +341,17 @@ public class GameController : MonoBehaviour
             }
             _buildY += _wallHeight;
         }
+
+        lastPathDelta = 0;
     }
-    protected void GenerateRandomLine()
+    protected void GenerateNextRoadSegment()
     {
-        if (_forceStraightSpawn)
+        bool isStraight = (_segmentQueue[_segmentIndex] == STRAIGHT_SEGMENT);
+        Utils.Log($"Generating next road segment: {(isStraight ? "Straight" : "Bend")}", debugRoadGeneration);
+        if (isStraight)
         {
-            _forceStraightSpawn = false;
             // build a straight path from the current connection
-            for (int i = 0; i < 7; i++)
+            for (int i = 0; i < WALL_COLS; i++)
             {
                 if (i == pathConnection)
                     continue;
@@ -327,20 +359,43 @@ public class GameController : MonoBehaviour
                 WallSegement wall = _wallPool.Get();
                 wall.anchoredPosition = new Vector2(_wallWidth * 0.5f + i * _wallWidth, _buildY);
             }
+
+            lastPathDelta = 0;
         }
         else
         {
-            //Debug.Log($"Connecting from: " + pathConnection);
+            // build a bend segment
             Vector2Int pathways = PATHS_BY_POSITION[pathConnection - 1];
-            //Debug.Log($"segment paths: {pathways}");
             int offset = Random.Range(pathways.x, pathways.y);
-            //Debug.Log($"offset: {offset}");
+            // stop unintended straight spawns
+            while (offset == 0)
+            {
+                offset = Random.Range(pathways.x, pathways.y);
+            }
 
             int start = pathConnection;
             int end = pathConnection + offset;
 
+            int pathDelta = end - start;
+            // check for potential bend overlaps
+            if ((pathDelta < 0 && lastPathDelta > 0) || (pathDelta > 0 && lastPathDelta < 0))
+            {
+                if (pathConnection == 1 || pathConnection == WALL_COLS - 2)
+                {
+                    Utils.Log("Road special case: Overlapping bend at edge switching to straight", debugRoadGeneration);
+                    end = start;
+                }
+                else
+                {
+                    Utils.Log("Road special case: Overlapping bend", debugRoadGeneration);
+                    end = start + lastPathDelta / Mathf.Abs(lastPathDelta);
+                    pathDelta = end - start;
+                }
+            }
+            lastPathDelta = pathDelta;
+
             // generate the segment
-            for (int i = 0; i < 7; i++)
+            for (int i = 0; i < WALL_COLS; i++)
             {
                 if (i < Mathf.Min(start, end) || i > Mathf.Max(start, end))
                 {
@@ -349,16 +404,19 @@ public class GameController : MonoBehaviour
                 }
             }
 
-            if (pathConnection != end)
-            {
-                Debug.Log("random spawn straight");
-                _forceStraightSpawn = true;
-            }
-
             pathConnection = end;
         }
 
-        // no power spawning while on is active
+        // check for queue roll over
+        _segmentIndex++;
+        if (_segmentIndex >= _segmentQueue.Length)
+        {
+            _segmentQueue.Shuffle();
+            _segmentIndex = 0;
+            Utils.Log($"Shuffled road segment queue: {_segmentQueue.ToStringForReal()}", debugRoadGeneration);
+        }
+
+        // no power spawning while one is active
         if (_playerPowerRoutine != null || _powerPickup.gameObject.activeSelf)
             return;
 
@@ -366,9 +424,7 @@ public class GameController : MonoBehaviour
         if (segmentsUntilPowerUp > 0)
             return;
 
-        Debug.Log("resetting powerup counter");
-        segmentsUntilPowerUp = Random.Range(17, 35);
-
+        segmentsUntilPowerUp = Random.Range(_numSegmentsUntilPowerUpMin, _numSegmentsUntilPowerUpMax);
         SpawnPowerUpAt(pathConnection, _buildY);
     }
     protected void SpawnPowerUpAt(int in_position, float in_y)
@@ -376,7 +432,7 @@ public class GameController : MonoBehaviour
         _powerPickup.rectTransform.anchoredPosition = new Vector2(_wallWidth * 0.5f + in_position * _wallWidth - _powerPickup.rectTransform.sizeDelta.x * 0.5f, in_y);
         _powerPickup.mode = (Random.Range(0, 2) == 0) ? PowerPickup.Modes.Invincible : PowerPickup.Modes.Small;
         _powerPickup.gameObject.SetActive(true);
-        Utils.Log($"Spawning powerup[{_powerPickup.mode}] at: {in_position}", debugAppLogic);
+        Utils.Log($"Spawning powerup[{_powerPickup.mode}] at: {in_position}", debugRoadGeneration);
     }
     #endregion Road Generation
     #region Powerups
@@ -495,8 +551,8 @@ public class GameController : MonoBehaviour
 
     protected IObjectPool<WallSegement> _wallPool;
 
-    protected bool _forceStraightSpawn;
-
+    protected int[] _segmentQueue;
+    protected int _segmentIndex = 0;
     protected Coroutine _playerPowerRoutine;
 
     public enum GameStates
@@ -509,19 +565,29 @@ public class GameController : MonoBehaviour
     [Header("Debug")]
     public bool debugResolutionCalculations;
     public bool debugAppLogic;
+    public bool debugRoadGeneration;
     public bool debugUserInput;
 
     [Header("Configuration")]
     [SerializeField]
     protected GameObject _wallPrefab;
+    [SerializeField]
+    protected int numStraightsInQueue = 10;
+    [SerializeField]
+    protected int numBendsInQueue = 15;
+    [SerializeField]
+    protected int _numSegmentsUntilPowerUpMin = 17;
+    [SerializeField]
+    protected int _numSegmentsUntilPowerUpMax = 35;
 
     [Header("Dynamic")]
     public GameStates state = GameStates.WaitingToStart;
     public float score;
-    public int segmentsUntilPowerUp = 10;
     public bool invincible;
+    [Space(20)]
     public int pathConnection = 3;
-    public int lastPathConnection = 3;
+    public int lastPathDelta;
+    public int segmentsUntilPowerUp;
     public List<WallSegement> walls = new List<WallSegement>();
     [Space(20)]
     public float _playerHalfWidth;
