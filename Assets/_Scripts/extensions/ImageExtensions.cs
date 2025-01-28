@@ -23,7 +23,7 @@ public static class ImageExtensions
             float value = in_start + (in_end - in_start) * percent;
             in_image.color = in_image.color.SetAlpha(value);
 
-            yield return new WaitForFixedUpdate();
+            yield return new WaitForEndOfFrame();
         }
 
         in_image.color = in_image.color.SetAlpha(in_end);
@@ -43,7 +43,7 @@ public static class ImageExtensions
             Color value = start + (in_color - start) * percent;
             in_image.color = value;
 
-            yield return new WaitForFixedUpdate();
+            yield return new WaitForEndOfFrame();
         }
         in_image.color = in_color;
     }    

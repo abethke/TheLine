@@ -5,7 +5,7 @@ public class PowerPickup : MonoBehaviour
     void Start() { }
     protected void OnTriggerEnter2D(Collider2D in_collider)
     {
-        if (in_collider.name != Constants.PLAYER_INSTANCE_NAME)
+        if (!in_collider.name.Equals(Constants.PLAYER_INSTANCE_NAME))
             return;
 
         refs.game.ActivatePower();

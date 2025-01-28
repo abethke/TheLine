@@ -36,7 +36,7 @@ public static class TextExtensions
             float value = in_start + (in_end - in_start) * percent;
             in_text.color = in_text.color.SetAlpha(value);
 
-            yield return new WaitForFixedUpdate();
+            yield return new WaitForEndOfFrame();
         }
 
         in_text.color = in_text.color.SetAlpha(in_end);
