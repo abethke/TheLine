@@ -1433,7 +1433,7 @@ GameObject:
   - component: {fileID: 696944191}
   - component: {fileID: 696944194}
   m_Layer: 5
-  m_Name: Panel
+  m_Name: '[Panel]'
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4306,18 +4306,14 @@ MonoBehaviour:
   state: 0
   score: 0
   invincible: 0
-  pathConnection: 3
-  lastPathDelta: 0
-  segmentsUntilPowerUp: 17
-  walls: []
-  _playerHalfWidth: 0
-  _wallWidth: 0
-  _wallHeight: 0
-  _moveSpeed: -650
-  canvas: {fileID: 120645105}
+  _pathConnection: 3
+  _lastPathDelta: 0
+  _segmentsUntilPowerUp: 0
+  _walls: []
   refs: {fileID: 1969921912}
-  instructions: {fileID: 382990306}
-  scoreDisplay: {fileID: 697903963}
+  _canvas: {fileID: 120645105}
+  _instructions: {fileID: 382990306}
+  _scoreDisplay: {fileID: 697903963}
   _wallContainer: {fileID: 462911305}
   _powerPickup: {fileID: 2021496179}
   _powerDisplayContainer: {fileID: 1421077389}
@@ -4593,8 +4589,8 @@ MonoBehaviour:
   - {fileID: 1759520188}
   - {fileID: 2099959869}
   refs: {fileID: 1969921912}
-  scoreDisplay: {fileID: 207388580}
-  bestScoreDisplay: {fileID: 1759520188}
+  _scoreDisplay: {fileID: 207388580}
+  _bestScoreDisplay: {fileID: 1759520188}
 --- !u!1 &2021496173
 GameObject:
   m_ObjectHideFlags: 0

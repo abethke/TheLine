@@ -90,7 +90,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rectTransform: {fileID: 525173254786277924}
-  img: {fileID: 4242540482833534509}
+  _img: {fileID: 4242540482833534509}
   refs: {fileID: 0}
 --- !u!61 &668980373160392120
 BoxCollider2D:

@@ -21,6 +21,5 @@ public class MainMenu : OverlayScreenBase
     }
 
     [Header("References")]
-    [SerializeField]
-    private SharedReferences refs;
+    public SharedReferences refs;
 }

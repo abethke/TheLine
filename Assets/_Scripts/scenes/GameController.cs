@@ -18,8 +18,8 @@ public class GameController : MonoBehaviour
         refs.gameOver.gameObject.SetActive(false);
         _powerPickup.gameObject.SetActive(false);
         _powerDisplayContainer.gameObject.SetActive(false);
-        instructions.gameObject.SetActive(true);
-        scoreDisplay.text = "0";
+        _instructions.gameObject.SetActive(true);
+        _scoreDisplay.text = "0";
 
         // get references
         _playerRect = refs.player.GetComponent<RectTransform>();
@@ -35,7 +35,7 @@ public class GameController : MonoBehaviour
     }
     protected void CalculateValuesBasedOnScreenResolution()
     {
-        RectTransform canvasRect = canvas.GetComponent<RectTransform>();
+        RectTransform canvasRect = _canvas.GetComponent<RectTransform>();
         float canvasWidth = canvasRect.rect.width;
         float canvasHeight = canvasRect.rect.height;
         Utils.Log($"Screen dimensions: {Screen.width}, {Screen.height}", debugResolutionCalculations);
@@ -82,7 +82,7 @@ public class GameController : MonoBehaviour
 
         float instructionsHeight = INSTRUCTIONS_HEIGHT * _wallHeight;
         float instructionsY = instructionsHeight;
-        RectTransform instructionsRect = instructions.gameObject.RectTransform();
+        RectTransform instructionsRect = _instructions.gameObject.RectTransform();
         instructionsRect.sizeDelta = instructionsRect.sizeDelta.SetY(instructionsY);
         instructionsRect.anchoredPosition = new Vector2(0, instructionsY);
 
@@ -122,17 +122,17 @@ public class GameController : MonoBehaviour
     protected void OnTakeFromPool(WallSegement in_wall)
     {
         in_wall.Reset();
-        walls.Add(in_wall);
+        _walls.Add(in_wall);
         in_wall.gameObject.SetActive(true);
     }
     protected void OnReturnToPool(WallSegement in_wall)
     {
-        walls.Remove(in_wall);
+        _walls.Remove(in_wall);
         in_wall.gameObject.SetActive(false);
     }
     protected void OnDestroyPooledObject(WallSegement in_wall)
     {
-        walls.Remove(in_wall);
+        _walls.Remove(in_wall);
         Destroy(in_wall.gameObject);
     }
     #endregion Wall object pooling
@@ -172,7 +172,7 @@ public class GameController : MonoBehaviour
                     }
                 }
                 score += Time.deltaTime * 10f;
-                scoreDisplay.text = $"{ScoreForDisplay}";
+                _scoreDisplay.text = $"{ScoreForDisplay}";
 
                 break;
             case GameStates.GameOver:
@@ -197,7 +197,7 @@ public class GameController : MonoBehaviour
             return;
 
         //update Move to update for smoother outcome?
-        foreach (WallSegement wall in walls)
+        foreach (WallSegement wall in _walls)
         {
             wall.rectTransform.anchoredPosition = wall.rectTransform.anchoredPosition.PlusY(_moveSpeed * Time.fixedDeltaTime);
         }
@@ -212,19 +212,19 @@ public class GameController : MonoBehaviour
     }
     public void StartGame()
     {
-        Debug.Log("Start game");
-        scoreDisplay.text = "0";
-        instructions.FadeOut();
+        Utils.Log("Start game", debugAppLogic);
+        _scoreDisplay.text = "0";
+        _instructions.FadeOut();
         state = GameStates.ActiveGame;
     }
     public void GameOver()
     {
-        Debug.Log("GAME OVER");
+        Utils.Log("GAME OVER", debugAppLogic);
         state = GameStates.GameOver;
 
         int finalScore = Mathf.FloorToInt(score);
         int bestScore = PlayerPrefs.HasKey(SAVED_BEST_SCORE) ? PlayerPrefs.GetInt(SAVED_BEST_SCORE) : 0;
-        Debug.Log($"final score {finalScore} vs best score {bestScore}");
+        Utils.Log($"final score {finalScore} vs best score {bestScore}", debugAppLogic);
         if (finalScore > bestScore)
         {
             PlayerPrefs.SetInt(SAVED_BEST_SCORE, finalScore);
@@ -237,14 +237,15 @@ public class GameController : MonoBehaviour
         yield return new WaitForSeconds(3f);
 
         refs.gameOver.gameObject.SetActive(true);
-        instructions.FadeIn();
+        _instructions.FadeIn();
     }
     public void ResetGame()
     {
+        Utils.Log("Resetting game", debugAppLogic);
         score = 0;
-        while (walls.Count > 0)
+        while (_walls.Count > 0)
         {
-            WallSegement wall = walls[0];
+            WallSegement wall = _walls[0];
             _wallPool.Release(wall);
         }
 
@@ -258,8 +259,7 @@ public class GameController : MonoBehaviour
         _playerImage.color = PLAYER_COLOUR;
         _powerDisplayContainer.gameObject.SetActive(false);
 
-        pathConnection = 3;
-        segmentsUntilPowerUp = Random.Range(_numSegmentsUntilPowerUpMin, _numSegmentsUntilPowerUpMax);
+        _pathConnection = 3;
         GenerateStartWalls();
     }
     #endregion Game Loop
@@ -287,10 +287,10 @@ public class GameController : MonoBehaviour
             _powerPickup.gameObject.SetActive(false);
         }
 
-        if (walls.Count == 0)
+        if (_walls.Count == 0)
             return;
 
-        WallSegement lastWall = walls[walls.Count - 1];
+        WallSegement lastWall = _walls[_walls.Count - 1];
         if (lastWall.anchoredPosition.y > 0)
             return;
 
@@ -299,16 +299,16 @@ public class GameController : MonoBehaviour
     }
     protected void UpdateForLineRemoval()
     {
-        if (walls.Count == 0)
+        if (_walls.Count == 0)
             return;
 
         bool clearing = true;
         while (clearing)
         {
-            if (walls.Count == 0)
+            if (_walls.Count == 0)
                 break;
 
-            WallSegement wall = walls[0];
+            WallSegement wall = _walls[0];
             if (wall.anchoredPosition.y < _removeY)
             {
                 _wallPool.Release(wall);
@@ -321,6 +321,9 @@ public class GameController : MonoBehaviour
     }
     protected void GenerateStartWalls()
     {
+        // reset power spawning
+        _segmentsUntilPowerUp = Random.Range(_numSegmentsUntilPowerUpMin, _numSegmentsUntilPowerUpMax);
+
         // reset  the build position to default
         _buildY = _buildYStart;
 
@@ -342,7 +345,7 @@ public class GameController : MonoBehaviour
             _buildY += _wallHeight;
         }
 
-        lastPathDelta = 0;
+        _lastPathDelta = 0;
     }
     protected void GenerateNextRoadSegment()
     {
@@ -353,19 +356,19 @@ public class GameController : MonoBehaviour
             // build a straight path from the current connection
             for (int i = 0; i < WALL_COLS; i++)
             {
-                if (i == pathConnection)
+                if (i == _pathConnection)
                     continue;
 
                 WallSegement wall = _wallPool.Get();
                 wall.anchoredPosition = new Vector2(_wallWidth * 0.5f + i * _wallWidth, _buildY);
             }
 
-            lastPathDelta = 0;
+            _lastPathDelta = 0;
         }
         else
         {
             // build a bend segment
-            Vector2Int pathways = PATHS_BY_POSITION[pathConnection - 1];
+            Vector2Int pathways = PATHS_BY_POSITION[_pathConnection - 1];
             int offset = Random.Range(pathways.x, pathways.y);
             // stop unintended straight spawns
             while (offset == 0)
@@ -373,14 +376,14 @@ public class GameController : MonoBehaviour
                 offset = Random.Range(pathways.x, pathways.y);
             }
 
-            int start = pathConnection;
-            int end = pathConnection + offset;
+            int start = _pathConnection;
+            int end = _pathConnection + offset;
 
             int pathDelta = end - start;
             // check for potential bend overlaps
-            if ((pathDelta < 0 && lastPathDelta > 0) || (pathDelta > 0 && lastPathDelta < 0))
+            if ((pathDelta < 0 && _lastPathDelta > 0) || (pathDelta > 0 && _lastPathDelta < 0))
             {
-                if (pathConnection == 1 || pathConnection == WALL_COLS - 2)
+                if (_pathConnection == 1 || _pathConnection == WALL_COLS - 2)
                 {
                     Utils.Log("Road special case: Overlapping bend at edge switching to straight", debugRoadGeneration);
                     end = start;
@@ -388,11 +391,11 @@ public class GameController : MonoBehaviour
                 else
                 {
                     Utils.Log("Road special case: Overlapping bend", debugRoadGeneration);
-                    end = start + lastPathDelta / Mathf.Abs(lastPathDelta);
+                    end = start + _lastPathDelta / Mathf.Abs(_lastPathDelta);
                     pathDelta = end - start;
                 }
             }
-            lastPathDelta = pathDelta;
+            _lastPathDelta = pathDelta;
 
             // generate the segment
             for (int i = 0; i < WALL_COLS; i++)
@@ -404,7 +407,7 @@ public class GameController : MonoBehaviour
                 }
             }
 
-            pathConnection = end;
+            _pathConnection = end;
         }
 
         // check for queue roll over
@@ -420,12 +423,12 @@ public class GameController : MonoBehaviour
         if (_playerPowerRoutine != null || _powerPickup.gameObject.activeSelf)
             return;
 
-        segmentsUntilPowerUp--;
-        if (segmentsUntilPowerUp > 0)
+        _segmentsUntilPowerUp--;
+        if (_segmentsUntilPowerUp > 0)
             return;
 
-        segmentsUntilPowerUp = Random.Range(_numSegmentsUntilPowerUpMin, _numSegmentsUntilPowerUpMax);
-        SpawnPowerUpAt(pathConnection, _buildY);
+        _segmentsUntilPowerUp = Random.Range(_numSegmentsUntilPowerUpMin, _numSegmentsUntilPowerUpMax);
+        SpawnPowerUpAt(_pathConnection, _buildY);
     }
     protected void SpawnPowerUpAt(int in_position, float in_y)
     {
@@ -438,7 +441,7 @@ public class GameController : MonoBehaviour
     #region Powerups
     public void ActivatePower()
     {
-        Debug.Log("Activating power: " + _powerPickup.mode);
+        Utils.Log("Activating power: " + _powerPickup.mode, debugAppLogic);
         _powerPickup.gameObject.SetActive(false);
         _powerDisplay.color = TEXT_YELLOW;
 
@@ -525,7 +528,7 @@ public class GameController : MonoBehaviour
         if (state == GameStates.GameOver)
             return;
 
-        Debug.Log("Show main menu");
+        Utils.Log("Show main menu", debugAppLogic || debugUserInput);
         state = GameStates.WaitingToStart;
         refs.mainMenu.gameObject.SetActive(true);
     }
@@ -541,9 +544,14 @@ public class GameController : MonoBehaviour
     protected CircleCollider2D _playerCollider;
     protected Image _playerImage;
 
+    // calculated values
     protected float _scaleFactorForResolution;
+    protected float _playerHalfWidth;
     protected float _playerStartX;
     protected float _playerY;
+    protected float _wallWidth;
+    protected float _wallHeight;
+    protected float _moveSpeed;
     protected float _buildYStart;
     protected float _buildY;
     protected float _removeY;
@@ -580,30 +588,28 @@ public class GameController : MonoBehaviour
     [SerializeField]
     protected int _numSegmentsUntilPowerUpMax = 35;
 
-    [Header("Dynamic")]
+    [Header("Dynamic - Game State")]
     public GameStates state = GameStates.WaitingToStart;
     public float score;
     public bool invincible;
-    [Space(20)]
-    public int pathConnection = 3;
-    public int lastPathDelta;
-    public int segmentsUntilPowerUp;
-    public List<WallSegement> walls = new List<WallSegement>();
-    [Space(20)]
-    public float _playerHalfWidth;
-    public float _wallWidth;
-    public float _wallHeight;
-    public float _moveSpeed;
+    [Header("Dynamic - Road Generation")]
+    [SerializeField]
+    protected int _pathConnection = 3;
+    [SerializeField]
+    protected int _lastPathDelta;
+    [SerializeField]
+    protected int _segmentsUntilPowerUp;
+    [SerializeField]
+    protected List<WallSegement> _walls = new List<WallSegement>();
 
     [Header("References")]
+    public SharedReferences refs;
     [SerializeField]
-    protected Canvas canvas;
+    protected Canvas _canvas;
     [SerializeField]
-    protected SharedReferences refs;
+    protected OverlayScreenBase _instructions;
     [SerializeField]
-    protected OverlayScreenBase instructions;
-    [SerializeField]
-    protected TMP_Text scoreDisplay;
+    protected TMP_Text _scoreDisplay;
     [SerializeField]
     protected Transform _wallContainer;
     [SerializeField]

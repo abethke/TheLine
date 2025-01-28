@@ -12,13 +12,12 @@ public class WallSegement : MonoBehaviour
             StopCoroutine(_blink);
             _blink = null;
         }
-        img.color = BLOCK_COLOUR;
+        _img.color = BLOCK_COLOUR;
     }
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (refs.game.state == GameController.GameStates.ActiveGame)
         {
-            //Debug.Log("[WallSegment] Colliding with: " + other.gameObject.name);
             if (refs.game.invincible)
             {
                 refs.game.RemoveWall(this);
@@ -44,7 +43,7 @@ public class WallSegement : MonoBehaviour
             // allows for percent over 100% by design
             float percent = (Time.time - startedAt) / blinkDuration;
             float lerp = Mathf.Abs(Mathf.Sin(percent));
-            img.color = Color.Lerp(BLOCK_COLOUR, BLOCK_HIT_COLOUR, lerp);
+            _img.color = Color.Lerp(BLOCK_COLOUR, BLOCK_HIT_COLOUR, lerp);
             yield return new WaitForFixedUpdate();
         }
     }
@@ -53,7 +52,8 @@ public class WallSegement : MonoBehaviour
 
     [Header("References")]
     public RectTransform rectTransform;
-    public Image img;
+    [SerializeField]
+    protected Image _img;
 
     [Header("Dynamic")]
     public SharedReferences refs;

@@ -6,9 +6,9 @@ public class GameOver : OverlayScreenBase
     void Start() { }
     void OnEnable()
     {
-        scoreDisplay.text = refs.game.ScoreForDisplay;
+        _scoreDisplay.text = refs.game.ScoreForDisplay;
         int bestScore = PlayerPrefs.HasKey(SAVED_BEST_SCORE) ? PlayerPrefs.GetInt(SAVED_BEST_SCORE) : 0;
-        bestScoreDisplay.text = bestScore.ToString();
+        _bestScoreDisplay.text = bestScore.ToString();
         FadeIn();
     }
     public void ClickedTryAgain()
@@ -19,10 +19,9 @@ public class GameOver : OverlayScreenBase
     }
 
     [Header("References")]
+    public SharedReferences refs;
     [SerializeField]
-    private SharedReferences refs;
+    protected TMP_Text _scoreDisplay;
     [SerializeField]
-    private TMP_Text scoreDisplay;
-    [SerializeField]
-    private TMP_Text bestScoreDisplay;
+    protected TMP_Text _bestScoreDisplay;
 }

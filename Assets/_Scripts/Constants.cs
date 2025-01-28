@@ -19,6 +19,7 @@ static public class Constants
     public static readonly string[] LAYOUT_AT_START =
         new string[] { "1000001", "1000001", "1100011", "1100011", "1110111", "1110111" };
 
+    // this data represents how far left/right you can move from any given position on the playfield
     public static readonly Vector2Int[] PATHS_BY_POSITION = new Vector2Int[]
     {
         new(0,4),

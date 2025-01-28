@@ -4,10 +4,10 @@ public static class ArrayExtensions
     {
         for (int i = in_array.Length - 1; i > 0; i--)
         {
-            int r = UnityEngine.Random.Range(0, i + 1);
+            int randomIndex = UnityEngine.Random.Range(0, i + 1);
             T tmp = in_array[i];
-            in_array[i] = in_array[r];
-            in_array[r] = tmp;
+            in_array[i] = in_array[randomIndex];
+            in_array[randomIndex] = tmp;
         }
     }
     static public string ToStringForReal<T>(this T[] in_array)
