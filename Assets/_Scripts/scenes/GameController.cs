@@ -20,6 +20,7 @@ public class GameController : MonoBehaviour
         _powerPickup.gameObject.SetActive(false);
         _powerDisplayContainer.gameObject.SetActive(false);
         instructions.gameObject.SetActive(true);
+        scoreDisplay.text = "0";
 
         // get references
         _playerRect = refs.player.GetComponent<RectTransform>();
@@ -164,9 +165,15 @@ public class GameController : MonoBehaviour
                         _playerRect.anchoredPosition = scaledMousePosition.SetY(_playerY).PlusX(-_playerHalfWidth);
                     }
 
+                    if (_powerDisplayContainer.activeSelf)
+                    {
+                        float newX = _playerRect.anchoredPosition.x - Screen.width * _scaleFactorForResolution * 0.5f;
+                        _powerDisplay.rectTransform.anchoredPosition = _powerDisplay.rectTransform.anchoredPosition.SetX(newX);
+                    }
                 }
                 score += Time.deltaTime * 10f;
                 scoreDisplay.text = $"{ScoreForDisplay}";
+
                 break;
             case GameStates.GameOver:
                 // do nothing
@@ -239,6 +246,8 @@ public class GameController : MonoBehaviour
 
         _playerRect.anchoredPosition = new Vector2(_playerStartX, _playerY);
         _playerImage.color = PLAYER_COLOUR;
+        _powerDisplayContainer.gameObject.SetActive(false);
+
         pathConnection = 3;
         lastPathConnection = 3;
         segmentsUntilPowerUp = 17;
@@ -393,7 +402,7 @@ public class GameController : MonoBehaviour
         float blinkDuration = 0.15f;
 
         invincible = true;
-        _powerDisplay.text = "BREAK THE WALLS!";
+        _powerDisplay.text = "Break the walls!";
         _powerDisplayContainer.SetActive(true);
 
         while (Time.time - startedAt <= INVINCIBLE_DURATION_IN_SECONDS)
@@ -407,7 +416,7 @@ public class GameController : MonoBehaviour
             yield return new WaitForFixedUpdate();
         }
 
-        _powerDisplay.text = "";
+        _powerDisplay.text = "0";
         _powerDisplayContainer.SetActive(false);
         invincible = false;
 
@@ -437,7 +446,7 @@ public class GameController : MonoBehaviour
             yield return new WaitForFixedUpdate();
         }
 
-        _powerDisplay.text = "";
+        _powerDisplay.text = string.Empty;
         _powerDisplayContainer.SetActive(false);
 
         playerSize = _wallWidth * PLAYER_SIZE;
