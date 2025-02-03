@@ -1,10 +1,8 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.UI;
-using static Constants;
-public class WallSegement : MonoBehaviour
+
+public class WallSegment : MonoBehaviour
 {
-    void Start() { }
     public void Reset()
     {
         if (_blink != null)
@@ -12,27 +10,22 @@ public class WallSegement : MonoBehaviour
             StopCoroutine(_blink);
             _blink = null;
         }
-        _img.color = BLOCK_COLOUR;
+        sprite.color = GameConfiguration.instance.blockColour;
     }
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (refs.game.state == GameController.GameStates.ActiveGame)
+        if (game.state == GameStates.ActiveGame)
         {
-            if (refs.game.invincible)
+            if (game.invincible)
             {
-                refs.game.RemoveWall(this);
+                roadBuilder.RemoveWall(this);
             }
             else
             {
                 _blink = StartCoroutine(BlinkRoutine());
-                refs.game.GameOver();
+                game.GameOver();
             }
         }
-    }
-    public Vector2 anchoredPosition
-    {
-        set { rectTransform.anchoredPosition = value; }
-        get { return rectTransform.anchoredPosition; }
     }
     protected IEnumerator BlinkRoutine()
     {
@@ -43,18 +36,18 @@ public class WallSegement : MonoBehaviour
             // allows for percent over 100% by design
             float percent = (Time.time - startedAt) / blinkDuration;
             float lerp = Mathf.Abs(Mathf.Sin(percent));
-            _img.color = Color.Lerp(BLOCK_COLOUR, BLOCK_HIT_COLOUR, lerp);
+            sprite.color = Color.Lerp(GameConfiguration.instance.blockColour, GameConfiguration.instance.blockHitColour, lerp);
             yield return new WaitForFixedUpdate();
         }
     }
 
     protected Coroutine _blink;
 
+    public IGameController game;
+
     [Header("References")]
-    public RectTransform rectTransform;
-    [SerializeField]
-    protected Image _img;
+    public SpriteRenderer sprite;
 
     [Header("Dynamic")]
-    public SharedReferences refs;
+    public RoadBuilder roadBuilder;
 }

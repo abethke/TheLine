@@ -2,13 +2,12 @@ using UnityEngine;
 
 public class PowerPickup : MonoBehaviour
 {
-    void Start() { }
     protected void OnTriggerEnter2D(Collider2D in_collider)
     {
-        if (!in_collider.name.Equals(Constants.PLAYER_INSTANCE_NAME))
+        if (!in_collider.gameObject == _player.gameObject)
             return;
 
-        refs.game.ActivatePower();
+        powerUpController.ActivatePower();
     }
     public enum Modes
     {
@@ -20,7 +19,7 @@ public class PowerPickup : MonoBehaviour
     public Modes mode = Modes.Invincible;
 
     [Header("References")]
-    public SharedReferences refs;
-    public RectTransform rectTransform;
-    public new BoxCollider2D collider;
+    public PowerUpController powerUpController;
+    [SerializeField]
+    protected Player _player;
 }

@@ -1,25 +1,24 @@
 using UnityEngine;
 using TMPro;
-using static SavedValues;
+using static PersistentData;
 public class GameOver : OverlayScreenBase
 {
-    void Start() { }
     void OnEnable()
     {
-        _scoreDisplay.text = refs.game.ScoreForDisplay;
-        int bestScore = PlayerPrefs.HasKey(SAVED_BEST_SCORE) ? PlayerPrefs.GetInt(SAVED_BEST_SCORE) : 0;
+        _scoreDisplay.text = Utils.ScoreForDisplay(game.score);
+        int bestScore = PlayerPrefs.HasKey(BEST_SCORE) ? PlayerPrefs.GetInt(BEST_SCORE) : 0;
         _bestScoreDisplay.text = bestScore.ToString();
         FadeIn();
     }
     public void ClickedTryAgain()
     {
-        refs.game.ResetGame();
-        refs.game.StartGame();
+        game.ResetGame();
         gameObject.SetActive(false);
     }
 
-    [Header("References")]
-    public SharedReferences refs;
+    public IGameController game;
+
+    [Header("References")]    
     [SerializeField]
     protected TMP_Text _scoreDisplay;
     [SerializeField]

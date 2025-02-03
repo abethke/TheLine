@@ -1,621 +1,242 @@
 using System.Collections;
-using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.Pool;
-using static SavedValues;
-using static Constants;
-using UnityEngine.UI;
+using static PersistentData;
 
-public class GameController : MonoBehaviour
+public class GameController : MonoBehaviour, IGameController
 {
     #region Life Cycle
-    void Start()
+    protected void Awake()
     {
-        Utils.Log("Starting Application", debugAppLogic);
-        refs.mainMenu.gameObject.SetActive(false);
-        refs.gameOver.gameObject.SetActive(false);
-        _powerPickup.gameObject.SetActive(false);
-        _powerDisplayContainer.gameObject.SetActive(false);
-        _instructions.gameObject.SetActive(true);
-        _scoreDisplay.text = "0";
-
-        // get references
-        _playerRect = refs.player.GetComponent<RectTransform>();
-        _playerCollider = refs.player.GetComponent<CircleCollider2D>();
-        _playerImage = refs.player.GetComponent<Image>();
+        _mainMenu.game = this;
+        _gameOver.game = this;
+        _powerDisplay.game = this;
+        _roadBuilder.game = this;
+        _player.game = this;
+        _powerUpController.game = this;
+        _scoreDisplay.game = this;
+    }
+    protected void Start()
+    {
+        Utils.Log("Starting Application", GameDebugger.instance.debugAppLogic);
+        GameConfiguration.instance = _config;
+        InitScreenState();
 
         CalculateValuesBasedOnScreenResolution();
         ConfigureElementsBasedOnScreenResolution();
 
-        InitObjectPool();
-        CreateRoadGenerationData();
-        GenerateStartWalls();
+        _roadBuilder.Init(_calculated);
+        _roadBuilder.GenerateStartWalls();
+
+        _powerUpController.Init(_calculated, _roadBuilder);
+    }
+    protected void InitScreenState()
+    {
+        _mainMenu.gameObject.SetActive(false);
+        _gameOver.gameObject.SetActive(false);
+        _powerDisplay.gameObject.SetActive(false);
+        _instructions.gameObject.SetActive(true);
     }
     protected void CalculateValuesBasedOnScreenResolution()
     {
+        Utils.Log($"Screen dimensions: {Screen.width}, {Screen.height}", GameDebugger.instance.debugResolutionCalculations);
+        float aspect = (float)Screen.width / (float)Screen.height;
+        float worldHeight = Camera.main.orthographicSize * 2;
+        float worldWidth = worldHeight * aspect;
+        _calculated.worldWidth = worldWidth;
+        _calculated.worldHeight = worldHeight;
+        Utils.Log($"World dimensions: {worldWidth}, {worldHeight}", GameDebugger.instance.debugResolutionCalculations);
+
+        _calculated.wallWidth = worldWidth / (float)_config.wallColumns;
+        _calculated.wallHeight = worldHeight / (float)_config.wallRows;
+        Utils.Log($"Wall Width: {_calculated.wallWidth}", GameDebugger.instance.debugResolutionCalculations);
+        Utils.Log($"Wall Height: {_calculated.wallHeight}", GameDebugger.instance.debugResolutionCalculations);
+
+        _calculated.buildXStart = worldWidth * -0.5f;
+        _calculated.buildYStart = worldHeight * -0.5f + _calculated.wallHeight * 2.5f;
+        _calculated.addWallsAboveY = worldHeight * 0.5f + _calculated.wallHeight * 0.5f;
+        _calculated.removeWallsBelowY = worldHeight * -0.5f - _calculated.wallHeight;
+        Utils.Log($"Building layout from: {_calculated.buildXStart}, {_calculated.buildYStart}", GameDebugger.instance.debugResolutionCalculations);
+        Utils.Log($"Walls removed at: {_calculated.removeWallsBelowY}", GameDebugger.instance.debugResolutionCalculations);
+
+        _calculated.playerSize = _calculated.wallWidth * _config.playerSizeAsPercentOfWallHeight;
+        _calculated.playerHalfWidth = _calculated.playerSize * 0.5f;
+        _calculated.playerStartX = 0;
+        _calculated.playerY = _calculated.buildYStart;
+        Utils.Log($"Player size: {_calculated.playerSize}", GameDebugger.instance.debugResolutionCalculations);
+        Utils.Log($"Player start position: {_calculated.playerStartX}, {_calculated.buildYStart}", GameDebugger.instance.debugResolutionCalculations);
+
+        _calculated.moveSpeed = _calculated.wallHeight * -_config.movementSpeedAsPercentOfWallHeight;
+        Utils.Log($"Move speed: {_calculated.moveSpeed}", GameDebugger.instance.debugResolutionCalculations);
+
+        float instructionsBarHeight = _config.instructionsHeightAsPercentOfWallHeight * _calculated.wallHeight;
+        Debug.Log("instructionsBarHeight:" + instructionsBarHeight);
+        _calculated.ignoreInputAboveY = worldHeight * -0.5f
+            + _config.instructionsOffsetAsPercentOfWallHeight * _calculated.wallHeight
+            + instructionsBarHeight;
+        _calculated.ignoreInputBelowY = _calculated.ignoreInputAboveY - instructionsBarHeight;
+
         RectTransform canvasRect = _canvas.GetComponent<RectTransform>();
         float canvasWidth = canvasRect.rect.width;
         float canvasHeight = canvasRect.rect.height;
-        Utils.Log($"Screen dimensions: {Screen.width}, {Screen.height}", debugResolutionCalculations);
-        Utils.Log($"Canvas dimensions: {canvasWidth}, {canvasHeight}", debugResolutionCalculations);
-        _scaleFactorForResolution = canvasWidth / Screen.width;
-        Utils.Log($"Scale factor based on canvas vs screen resolution: {_scaleFactorForResolution}", debugResolutionCalculations);
-        _wallWidth = canvasWidth / (float)WALL_COLS;
-        _wallHeight = canvasHeight / (float)WALL_ROWS;
-
-        float playerSize = _wallWidth * PLAYER_SIZE;
-
-        _playerHalfWidth = playerSize * 0.5f;
-        _playerStartX = canvasWidth * 0.5f - _playerHalfWidth;
-        _playerY = _wallHeight * 2.5f;
-
-        _removeY = -canvasHeight - _wallHeight * 0.5f;
-        _buildYStart = -canvasHeight + _wallHeight * 2.5f;
-
-        _ignoreInputAboveY = INSTRUCTIONS_OFFSET * _wallHeight + INSTRUCTIONS_HEIGHT * _wallHeight;
-
-        _moveSpeed = _wallHeight * -MOVEMENT_SPEED;
-
-        Utils.Log($"Wall Width: {_wallWidth}", debugResolutionCalculations);
-        Utils.Log($"Wall Height: {_wallHeight}", debugResolutionCalculations);
-        Utils.Log($"Player half width: {_playerHalfWidth}", debugResolutionCalculations);
-        Utils.Log($"Player start x: {_playerStartX}", debugResolutionCalculations);
-        Utils.Log($"Walls build from: {_buildY}", debugResolutionCalculations);
-        Utils.Log($"Walls removed at: {_removeY}", debugResolutionCalculations);
-
-        // resize the player
-        _playerRect.sizeDelta = playerSize * Vector2.one;
-        _playerCollider.offset = (playerSize - PLAYER_COLLIDER_SIZE_REDUCTION) * 0.5f * Vector2.one;
-        _playerCollider.radius = (playerSize - PLAYER_COLLIDER_SIZE_REDUCTION) * 0.5f;
-
-        // resize the power pickup
-        _powerPickup.rectTransform.sizeDelta = playerSize * 0.5f * Vector2.one;
-        _powerPickup.collider.offset = playerSize * 0.5f * Vector2.one;
-        _powerPickup.collider.size = playerSize * Vector2.one;
+        Utils.Log($"Canvas dimensions: {canvasWidth}, {canvasHeight}", GameDebugger.instance.debugResolutionCalculations);
+        _calculated.wallWidthOnCanvas = canvasWidth / (float)_config.wallColumns;
+        _calculated.wallHeightOnCanvas = canvasHeight / (float)_config.wallRows;
     }
     protected void ConfigureElementsBasedOnScreenResolution()
     {
-        // position player at start
-        _playerRect.anchoredPosition = new Vector2(_playerStartX, _playerY);
+        // initialize player
+        _player.Init(_calculated);
+        _player.transform.position = new Vector2(_calculated.playerStartX, _calculated.playerY);
 
-        float instructionsHeight = INSTRUCTIONS_HEIGHT * _wallHeight;
-        float instructionsY = instructionsHeight;
+        float instructionsHeight = _config.instructionsHeightAsPercentOfWallHeight * _calculated.wallHeightOnCanvas;
+        float instructionsY = _config.instructionsOffsetAsPercentOfWallHeight * _calculated.wallHeightOnCanvas;
         RectTransform instructionsRect = _instructions.gameObject.RectTransform();
-        instructionsRect.sizeDelta = instructionsRect.sizeDelta.SetY(instructionsY);
+        instructionsRect.sizeDelta = instructionsRect.sizeDelta.SetY(instructionsHeight);
         instructionsRect.anchoredPosition = new Vector2(0, instructionsY);
 
-        RectTransform powerDisplayRect = _powerDisplayContainer.RectTransform();
+        RectTransform powerDisplayRect = _powerDisplay.gameObject.RectTransform();
         powerDisplayRect.sizeDelta = powerDisplayRect.sizeDelta.SetY(instructionsHeight * 0.5f);
         powerDisplayRect.anchoredPosition = new Vector2(0, instructionsY + instructionsHeight);
     }
-    void OnDestroy()
-    {
-        _wallPool.Clear();
-    }
     #endregion Life Cycle
-    #region Wall object pooling
-    protected void InitObjectPool()
-    {
-        // max pool is a full screen of wall segments minus the one we're in and
-        // the one we're moving to, plus the build row
-        int maxPoolSize = (WALL_ROWS + 1) * WALL_COLS - 2;
-        Utils.Log("Initializing object pool for walls", debugAppLogic);
-        _wallPool = new ObjectPool<WallSegement>(CreateWall, OnTakeFromPool, OnReturnToPool, OnDestroyPooledObject, true, maxPoolSize);
-    }
-    protected WallSegement CreateWall()
-    {
-        GameObject instance = Instantiate(_wallPrefab, _wallContainer);
-
-        RectTransform rectTransform = instance.GetComponent<RectTransform>();
-        rectTransform.sizeDelta = new Vector2(_wallWidth, _wallHeight);
-
-        BoxCollider2D collider = instance.GetComponent<BoxCollider2D>();
-        collider.size = rectTransform.sizeDelta;
-
-        WallSegement wall = instance.GetComponent<WallSegement>();
-        wall.refs = refs;
-        instance.SetActive(false);
-        return wall;
-    }
-    protected void OnTakeFromPool(WallSegement in_wall)
-    {
-        in_wall.Reset();
-        _walls.Add(in_wall);
-        in_wall.gameObject.SetActive(true);
-    }
-    protected void OnReturnToPool(WallSegement in_wall)
-    {
-        _walls.Remove(in_wall);
-        in_wall.gameObject.SetActive(false);
-    }
-    protected void OnDestroyPooledObject(WallSegement in_wall)
-    {
-        _walls.Remove(in_wall);
-        Destroy(in_wall.gameObject);
-    }
-    #endregion Wall object pooling
     #region Game Loop
     void Update()
     {
-        switch (state)
+        switch (_state)
         {
             case GameStates.WaitingToStart:
-                if (Input.GetMouseButtonDown(0))
+                if (Input.GetMouseButtonDown(0) && IsInputValid())
                 {
                     StartGame();
                 }
                 break;
             case GameStates.ActiveGame:
-                if (Input.GetMouseButtonDown(0) || Input.GetMouseButton(0))
-                {
-                    // check if the player is interacting with a UI element
-                    if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null)
-                    {
-                        Utils.Log($"User interacting with UI", debugUserInput);
-                        return;
-                    }
-                    Vector3 scaledMousePosition = Input.mousePosition * _scaleFactorForResolution;
-                    Utils.Log($"mousePosition position: {Input.mousePosition}", debugUserInput);
-                    Utils.Log($"scaled position: {scaledMousePosition}", debugUserInput);
-                    // only allow user input in the valid input region at the bottom of the screen
-                    if (scaledMousePosition.y < _ignoreInputAboveY)
-                    {
-                        _playerRect.anchoredPosition = scaledMousePosition.SetY(_playerY).PlusX(-_playerHalfWidth);
-                    }
-
-                    if (_powerDisplayContainer.activeSelf)
-                    {
-                        float newX = _playerRect.anchoredPosition.x - Screen.width * _scaleFactorForResolution * 0.5f;
-                        _powerDisplay.rectTransform.anchoredPosition = _powerDisplay.rectTransform.anchoredPosition.SetX(newX);
-                    }
-                }
-                score += Time.deltaTime * 10f;
-                _scoreDisplay.text = $"{ScoreForDisplay}";
-
+                _score += Time.deltaTime * 10f;
                 break;
             case GameStates.GameOver:
                 // do nothing
                 break;
         }
-
-#if UNITY_EDITOR
-        if (Input.GetKey(KeyCode.Space))
-        {
-            Time.timeScale = 5f;
-        }
-        else
-        {
-            Time.timeScale = 1f;
-        }
-#endif
     }
-    void FixedUpdate()
+    public bool IsInputValid()
     {
-        if (state != GameStates.ActiveGame)
-            return;
-
-        //update Move to update for smoother outcome?
-        foreach (WallSegement wall in _walls)
-        {
-            wall.rectTransform.anchoredPosition = wall.rectTransform.anchoredPosition.PlusY(_moveSpeed * Time.fixedDeltaTime);
-        }
-
-        if (_powerPickup.gameObject.activeSelf)
-        {
-            _powerPickup.rectTransform.anchoredPosition = _powerPickup.rectTransform.anchoredPosition.PlusY(_moveSpeed * Time.fixedDeltaTime);
-        }
-
-        UpdateForLineRemoval();
-        UpdateForNewLineCreation();
+        Utils.Log($"screen mouse position: {Input.mousePosition}", GameDebugger.instance.debugUserInput);
+        Vector3 worldMouse = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        Utils.Log($"worldMouse: {worldMouse}", GameDebugger.instance.debugUserInput);
+        return (worldMouse.y < _calculated.ignoreInputAboveY && worldMouse.y > _calculated.ignoreInputBelowY);
     }
     public void StartGame()
     {
-        Utils.Log("Start game", debugAppLogic);
-        _scoreDisplay.text = "0";
+        Utils.Log("Start game", GameDebugger.instance.debugAppLogic);
         _instructions.FadeOut();
-        state = GameStates.ActiveGame;
+        _state = GameStates.ActiveGame;
     }
     public void GameOver()
     {
-        Utils.Log("GAME OVER", debugAppLogic);
-        state = GameStates.GameOver;
+        Utils.Log("GAME OVER", GameDebugger.instance.debugAppLogic);
+        _state = GameStates.GameOver;
 
-        int finalScore = Mathf.FloorToInt(score);
-        int bestScore = PlayerPrefs.HasKey(SAVED_BEST_SCORE) ? PlayerPrefs.GetInt(SAVED_BEST_SCORE) : 0;
-        Utils.Log($"final score {finalScore} vs best score {bestScore}", debugAppLogic);
-        if (finalScore > bestScore)
-        {
-            PlayerPrefs.SetInt(SAVED_BEST_SCORE, finalScore);
-        }
+        SaveHighScore();
 
         StartCoroutine(GameOverRoutine());
+    }
+    protected void SaveHighScore()
+    {
+        int finalScore = Mathf.FloorToInt(_score);
+        int bestScore = PlayerPrefs.HasKey(BEST_SCORE) ? PlayerPrefs.GetInt(BEST_SCORE) : 0;
+        Utils.Log($"final score {finalScore} vs best score {bestScore}", GameDebugger.instance.debugAppLogic);
+        if (finalScore > bestScore)
+        {
+            PlayerPrefs.SetInt(BEST_SCORE, finalScore);
+        }
     }
     protected IEnumerator GameOverRoutine()
     {
         yield return new WaitForSeconds(3f);
 
-        refs.gameOver.gameObject.SetActive(true);
+        _gameOver.gameObject.SetActive(true);
         _instructions.FadeIn();
     }
     public void ResetGame()
     {
-        Utils.Log("Resetting game", debugAppLogic);
-        score = 0;
-        while (_walls.Count > 0)
-        {
-            WallSegement wall = _walls[0];
-            _wallPool.Release(wall);
-        }
+        Utils.Log("Resetting game", GameDebugger.instance.debugAppLogic);
+        _score = 0;
 
-        if (_playerPowerRoutine != null)
-        {
-            StopCoroutine(_playerPowerRoutine);
-            _playerPowerRoutine = null;
-        }
+        _player.Reset();
+        _player.transform.position = new Vector2(_calculated.playerStartX, _calculated.playerY);
 
-        _playerRect.anchoredPosition = new Vector2(_playerStartX, _playerY);
-        _playerImage.color = PLAYER_COLOUR;
-        _powerDisplayContainer.gameObject.SetActive(false);
+        _powerUpController.Reset();
+        _powerDisplay.gameObject.SetActive(false);
 
-        _pathConnection = 3;
-        GenerateStartWalls();
+        _roadBuilder.Reset();
+        _roadBuilder.GenerateStartWalls();
+
+        _state = GameStates.WaitingToStart;
     }
     #endregion Game Loop
-    #region Road Generation
-    protected void CreateRoadGenerationData()
-    {
-        // create the data for road generation 
-        int index = 0;
-        _segmentQueue = new int[numBendsInQueue + numStraightsInQueue];
-        for (int i = 0; i < numBendsInQueue; i++)
-        {
-            _segmentQueue[index] = BEND_SEGMENT;
-            index++;
-        }
-        for (int i = 0; i < numStraightsInQueue; i++)
-        {
-            _segmentQueue[index] = STRAIGHT_SEGMENT;
-            index++;
-        }
-    }
-    protected void UpdateForNewLineCreation()
-    {
-        if (_powerPickup.rectTransform.anchoredPosition.y < _removeY)
-        {
-            _powerPickup.gameObject.SetActive(false);
-        }
-
-        if (_walls.Count == 0)
-            return;
-
-        WallSegement lastWall = _walls[_walls.Count - 1];
-        if (lastWall.anchoredPosition.y > 0)
-            return;
-
-        _buildY = lastWall.anchoredPosition.y + _wallHeight;
-        GenerateNextRoadSegment();
-    }
-    protected void UpdateForLineRemoval()
-    {
-        if (_walls.Count == 0)
-            return;
-
-        bool clearing = true;
-        while (clearing)
-        {
-            if (_walls.Count == 0)
-                break;
-
-            WallSegement wall = _walls[0];
-            if (wall.anchoredPosition.y < _removeY)
-            {
-                _wallPool.Release(wall);
-            }
-            else
-            {
-                clearing = false;
-            }
-        }
-    }
-    protected void GenerateStartWalls()
-    {
-        // reset power spawning
-        _segmentsUntilPowerUp = Random.Range(_numSegmentsUntilPowerUpMin, _numSegmentsUntilPowerUpMax);
-
-        // reset  the build position to default
-        _buildY = _buildYStart;
-
-        _segmentQueue.Shuffle();
-        _segmentIndex = 0;
-        Utils.Log($"Shuffled road segment queue: {_segmentQueue.ToStringForReal()}", debugRoadGeneration);
-
-        for (int i = 0; i < LAYOUT_AT_START.Length; i++)
-        {
-            for (int j = 0; j < LAYOUT_AT_START[i].Length; j++)
-            {
-                float x = _wallWidth * 0.5f + j * _wallWidth;
-                if (LAYOUT_AT_START[i][j] == '0')
-                    continue;
-
-                WallSegement wall = _wallPool.Get();
-                wall.anchoredPosition = new Vector2(x, _buildY);
-            }
-            _buildY += _wallHeight;
-        }
-
-        _lastPathDelta = 0;
-    }
-    protected void GenerateNextRoadSegment()
-    {
-        bool isStraight = (_segmentQueue[_segmentIndex] == STRAIGHT_SEGMENT);
-        Utils.Log($"Generating next road segment: {(isStraight ? "Straight" : "Bend")}", debugRoadGeneration);
-        if (isStraight)
-        {
-            // build a straight path from the current connection
-            for (int i = 0; i < WALL_COLS; i++)
-            {
-                if (i == _pathConnection)
-                    continue;
-
-                WallSegement wall = _wallPool.Get();
-                wall.anchoredPosition = new Vector2(_wallWidth * 0.5f + i * _wallWidth, _buildY);
-            }
-
-            _lastPathDelta = 0;
-        }
-        else
-        {
-            // build a bend segment
-            Vector2Int pathways = PATHS_BY_POSITION[_pathConnection - 1];
-            int offset = Random.Range(pathways.x, pathways.y);
-            // stop unintended straight spawns
-            while (offset == 0)
-            {
-                offset = Random.Range(pathways.x, pathways.y);
-            }
-
-            int start = _pathConnection;
-            int end = _pathConnection + offset;
-
-            int pathDelta = end - start;
-            // check for potential bend overlaps
-            if ((pathDelta < 0 && _lastPathDelta > 0) || (pathDelta > 0 && _lastPathDelta < 0))
-            {
-                if (_pathConnection == 1 || _pathConnection == WALL_COLS - 2)
-                {
-                    Utils.Log("Road special case: Overlapping bend at edge switching to straight", debugRoadGeneration);
-                    end = start;
-                }
-                else
-                {
-                    Utils.Log("Road special case: Overlapping bend", debugRoadGeneration);
-                    end = start + _lastPathDelta / Mathf.Abs(_lastPathDelta);
-                    pathDelta = end - start;
-                }
-            }
-            _lastPathDelta = pathDelta;
-
-            // generate the segment
-            for (int i = 0; i < WALL_COLS; i++)
-            {
-                if (i < Mathf.Min(start, end) || i > Mathf.Max(start, end))
-                {
-                    WallSegement wall = _wallPool.Get();
-                    wall.anchoredPosition = new Vector2(_wallWidth * 0.5f + i * _wallWidth, _buildY);
-                }
-            }
-
-            _pathConnection = end;
-        }
-
-        // check for queue roll over
-        _segmentIndex++;
-        if (_segmentIndex >= _segmentQueue.Length)
-        {
-            _segmentQueue.Shuffle();
-            _segmentIndex = 0;
-            Utils.Log($"Shuffled road segment queue: {_segmentQueue.ToStringForReal()}", debugRoadGeneration);
-        }
-
-        // no power spawning while one is active
-        if (_playerPowerRoutine != null || _powerPickup.gameObject.activeSelf)
-            return;
-
-        _segmentsUntilPowerUp--;
-        if (_segmentsUntilPowerUp > 0)
-            return;
-
-        _segmentsUntilPowerUp = Random.Range(_numSegmentsUntilPowerUpMin, _numSegmentsUntilPowerUpMax);
-        SpawnPowerUpAt(_pathConnection, _buildY);
-    }
-    protected void SpawnPowerUpAt(int in_position, float in_y)
-    {
-        _powerPickup.rectTransform.anchoredPosition = new Vector2(_wallWidth * 0.5f + in_position * _wallWidth - _powerPickup.rectTransform.sizeDelta.x * 0.5f, in_y);
-        _powerPickup.mode = (Random.Range(0, 2) == 0) ? PowerPickup.Modes.Invincible : PowerPickup.Modes.Small;
-        _powerPickup.gameObject.SetActive(true);
-        Utils.Log($"Spawning powerup[{_powerPickup.mode}] at: {in_position}", debugRoadGeneration);
-    }
-    #endregion Road Generation
-    #region Powerups
-    public void ActivatePower()
-    {
-        Utils.Log("Activating power: " + _powerPickup.mode, debugAppLogic);
-        _powerPickup.gameObject.SetActive(false);
-        _powerDisplay.color = TEXT_YELLOW;
-
-        if (_powerPickup.mode == PowerPickup.Modes.Invincible)
-        {
-            _playerPowerRoutine = StartCoroutine(InvincibleRoutine());
-        }
-        else
-        {
-            _playerPowerRoutine = StartCoroutine(SmallRoutine());
-        }
-    }
-    protected IEnumerator InvincibleRoutine()
-    {
-        Utils.Log("[Power Up] INVINCIBLE!", debugAppLogic);
-        float startedAt = Time.time;
-        float blinkDuration = 0.15f;
-
-        invincible = true;
-        _powerDisplay.text = "Break the walls!";
-        _powerDisplayContainer.SetActive(true);
-
-        while (Time.time - startedAt <= INVINCIBLE_DURATION_IN_SECONDS)
-        {
-            // blink player
-            // allows for percent over 100% by design
-            float percent = (Time.time - startedAt) / blinkDuration;
-            float lerp = Mathf.Abs(Mathf.Sin(percent));
-            _playerImage.color = Color.Lerp(PLAYER_COLOUR, SECONDARY_YELLOW, lerp);
-
-            yield return new WaitForFixedUpdate();
-        }
-
-        _powerDisplay.text = "0";
-        _powerDisplayContainer.SetActive(false);
-        invincible = false;
-
-        _playerImage.color = PLAYER_COLOUR;
-
-        _playerPowerRoutine = null;
-    }
-    protected IEnumerator SmallRoutine()
-    {
-        Utils.Log("[Power Up] Small!", debugAppLogic);
-
-        float playerSize = _wallWidth * PLAYER_SIZE * 0.5f;
-
-        _playerRect.sizeDelta = playerSize * Vector2.one;
-        _playerCollider.offset = (playerSize - PLAYER_COLLIDER_SIZE_REDUCTION) * 0.5f * Vector2.one;
-        _playerCollider.radius = (playerSize - PLAYER_COLLIDER_SIZE_REDUCTION) * 0.5f;
-        _playerHalfWidth = playerSize * 0.5f;
-
-        _powerDisplayContainer.SetActive(true);
-
-        float startedAt = Time.time;
-        while (Time.time - startedAt <= SMALL_DURATION_IN_SECONDS)
-        {
-            int displayTime = Mathf.FloorToInt(SMALL_DURATION_IN_SECONDS - (Time.time - startedAt));
-            _powerDisplay.text = $"{displayTime}sec";
-            _powerDisplay.color = (displayTime > 4) ? TEXT_YELLOW : TEXT_RED;
-            yield return new WaitForFixedUpdate();
-        }
-
-        _powerDisplay.text = string.Empty;
-        _powerDisplayContainer.SetActive(false);
-
-        playerSize = _wallWidth * PLAYER_SIZE;
-
-        _playerRect.sizeDelta = playerSize * Vector2.one;
-        _playerCollider.offset = (playerSize - PLAYER_COLLIDER_SIZE_REDUCTION) * 0.5f * Vector2.one;
-        _playerCollider.radius = (playerSize - PLAYER_COLLIDER_SIZE_REDUCTION) * 0.5f;
-        _playerHalfWidth = playerSize * 0.5f;
-
-        _playerPowerRoutine = null;
-    }
-    #endregion Powerups
-    public void RemoveWall(WallSegement in_wall)
-    {
-        _wallPool.Release(in_wall);
-    }
     public void ShowMenu()
     {
         // stop overlap of screens if game over is already occuring
-        if (state == GameStates.GameOver)
+        if (_state == GameStates.GameOver)
             return;
 
-        Utils.Log("Show main menu", debugAppLogic || debugUserInput);
-        state = GameStates.WaitingToStart;
-        refs.mainMenu.gameObject.SetActive(true);
+        Utils.Log("Show main menu", GameDebugger.instance.debugAppLogic || GameDebugger.instance.debugUserInput);
+        _state = GameStates.WaitingToStart;
+        _mainMenu.gameObject.SetActive(true);
     }
-    public string ScoreForDisplay
+    public float score
     {
-        get
-        {
-            return Mathf.FloorToInt(score).ToString();
-        }
+        get { return _score; }
     }
-
-    protected RectTransform _playerRect;
-    protected CircleCollider2D _playerCollider;
-    protected Image _playerImage;
-
-    // calculated values
-    protected float _scaleFactorForResolution;
-    protected float _playerHalfWidth;
-    protected float _playerStartX;
-    protected float _playerY;
-    protected float _wallWidth;
-    protected float _wallHeight;
-    protected float _moveSpeed;
-    protected float _buildYStart;
-    protected float _buildY;
-    protected float _removeY;
-    protected float _ignoreInputAboveY;
-
-    protected IObjectPool<WallSegement> _wallPool;
-
-    protected int[] _segmentQueue;
-    protected int _segmentIndex = 0;
-    protected Coroutine _playerPowerRoutine;
-
-    public enum GameStates
+    public GameStates state
     {
-        WaitingToStart,
-        ActiveGame,
-        GameOver
+        get { return _state; }
+    }
+    public bool invincible
+    {
+        set { _invincible = value; }
+        get { return _invincible; }
+    }
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawLine(new Vector2(_calculated.buildXStart, _calculated.ignoreInputBelowY),
+            new Vector2(_calculated.buildXStart + _calculated.worldWidth, _calculated.ignoreInputBelowY));
+        Gizmos.color = Color.green;
+        Gizmos.DrawLine(new Vector2(_calculated.buildXStart, _calculated.ignoreInputAboveY),
+            new Vector2(_calculated.buildXStart + _calculated.worldWidth, _calculated.ignoreInputAboveY));
     }
 
-    [Header("Debug")]
-    public bool debugResolutionCalculations;
-    public bool debugAppLogic;
-    public bool debugRoadGeneration;
-    public bool debugUserInput;
+    protected CalculatedValues _calculated = new CalculatedValues();
+    protected float _score;
 
     [Header("Configuration")]
     [SerializeField]
-    protected GameObject _wallPrefab;
-    [SerializeField]
-    protected int numStraightsInQueue = 10;
-    [SerializeField]
-    protected int numBendsInQueue = 15;
-    [SerializeField]
-    protected int _numSegmentsUntilPowerUpMin = 17;
-    [SerializeField]
-    protected int _numSegmentsUntilPowerUpMax = 35;
+    protected GameConfiguration _config;
 
     [Header("Dynamic - Game State")]
-    public GameStates state = GameStates.WaitingToStart;
-    public float score;
-    public bool invincible;
-    [Header("Dynamic - Road Generation")]
     [SerializeField]
-    protected int _pathConnection = 3;
+    protected GameStates _state = GameStates.WaitingToStart;
     [SerializeField]
-    protected int _lastPathDelta;
-    [SerializeField]
-    protected int _segmentsUntilPowerUp;
-    [SerializeField]
-    protected List<WallSegement> _walls = new List<WallSegement>();
+    protected bool _invincible;
 
     [Header("References")]
-    public SharedReferences refs;
+    [SerializeField]
+    protected MainMenu _mainMenu;
+    [SerializeField]
+    protected GameOver _gameOver;
+    [SerializeField]
+    protected Player _player;
+    [SerializeField]
+    protected RoadBuilder _roadBuilder;
+    [SerializeField]
+    protected PowerUpController _powerUpController;
     [SerializeField]
     protected Canvas _canvas;
     [SerializeField]
     protected OverlayScreenBase _instructions;
     [SerializeField]
-    protected TMP_Text _scoreDisplay;
+    protected PowerInstructions _powerDisplay;
     [SerializeField]
-    protected Transform _wallContainer;
-    [SerializeField]
-    protected PowerPickup _powerPickup;
-    [SerializeField]
-    protected GameObject _powerDisplayContainer;
-    [SerializeField]
-    protected TMP_Text _powerDisplay;
+    protected ScoreDisplay _scoreDisplay;
 }

@@ -8,22 +8,22 @@ public class OverlayScreenBase : MonoBehaviour
     {        
         foreach (Image image in imagesToFade)
         {
-            image.FadeIn(Constants.FADE_DURATION_IN_SECONDS);
+            image.FadeIn(GameConfiguration.instance.fadeDurationInSeconds);
         }
         foreach (TMP_Text text in textToFade)
         {
-            text.FadeIn(Constants.FADE_DURATION_IN_SECONDS);
+            text.FadeIn(GameConfiguration.instance.fadeDurationInSeconds);
         }
     }
     public void FadeOut()
     {
         foreach (Image image in imagesToFade)
         {
-            image.FadeOut(Constants.FADE_DURATION_IN_SECONDS);
+            image.FadeOut(GameConfiguration.instance.fadeDurationInSeconds);
         }
         foreach (TMP_Text text in textToFade)
         {
-            text.FadeOut(Constants.FADE_DURATION_IN_SECONDS);
+            text.FadeOut(GameConfiguration.instance.fadeDurationInSeconds);
         }
     }
     [Header("References")]

@@ -1,25 +1,19 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
 public class MainMenu : OverlayScreenBase
 {
-    void Start() { }
     public void OnEnable()
     {
         FadeIn();
     }
     public void ClickedKeepGoing()
     {
+        game.StartGame();
         gameObject.SetActive(false);
-        refs.game.StartGame();
     }
     public void ClickedTryAgain()
     {
-        refs.game.ResetGame();
+        game.ResetGame();
         gameObject.SetActive(false);
     }
 
-    [Header("References")]
-    public SharedReferences refs;
+    public IGameController game;
 }
