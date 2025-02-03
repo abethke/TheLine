@@ -1,11 +1,19 @@
 Unity 2022.3.26f1
 
-Configured for iOS or Android play. Setup with support for multiple screen resolutions and ready to deploy to iOS as is.
-
 This project was created by Alex Bethke as part of a take-home technical test for a job interview. 
 The assignment was to clone this game minus the 6x paths, river jump, and music/sfx: https://apps.apple.com/us/app/the-line/id880338977
 
-Development Notes
+
+- Project is configured for Portrait locking on iOS; Landscape was deemed out of scope and not addressed
+- Project is configured to resize based on Portrait screen size with all game features scaling relationally
+- Localization solutions were not implemented 
+- Folder structure is using a specific naming schema. This is a style choice but also future proofs projects against the inclusion of plugins and asset store packages so the core project files stay grouped together and are quickly findable.
+- GameDebugger singleton was added to provide a central panel for controlling which debugging features are active. For non-developers I would create a custom editor to control this.
+
+
+
+
+Development Log
 - Unity specific version installation
 - project structure and initial UI setup
 - setting up game assets, single block collision detection, and basic game loop to detect end of game
@@ -70,3 +78,40 @@ Development Notes
 - Modified paths accessible from a given position to reduce maximum player movement from 5 blocks to 4
 - Added code to stop bend spawning from randomly selected a straight outside of the special case handling
 - Code clean up pass and final bug testing
+
+Development Log 2 - Revisions based on feedback
+> Refactored to move wall object pooling to its own script
+> Fixed typo in name of WallSegment script
+> Fixed game over handling to wait for user input before starting
+> Added dev cheats for activating powers
+> Reduced some duplicated calculations in favour of a pre-calculated value
+> Disabled power pickup and reset position to default on game reset
+> Refactored input handling to only allow input on the green bar
+> Removed SharedReferences and refactored where needed to restore required references
+> Fix bug with input limiting as it related to position of instructions on screen
+> Refactored power up display to its own script; Refactored where needed
+> Refactored to move player functionality to its own script; Refactored where needed
+> Refactored score display to its own script; Refactored where needed
+> Refactored GameController to move road generation to its own script; Refactored where needed
+> Added a generic list to RoadBuilder to handle scrolling objects
+> Refactored  GameController to move power up generation and handling to its own script; Refactored where needed
+> Converted most of Constants values to a ScriptableObject, using a singleton reference to share between all objects; Refactored where needed
+> Fully deprecated use of Constants.cs
+> Code clean up pass
+> Added CameraResizer script
+> Converted Wall prefab from Images (UI) to SpriteRenderer; Refactored referencing where needed
+> Refactored road generator and some CalculatedValues to work in world space
+> Refactored player to world space
+> Refactored power up to world space
+> Fixed initial positioning issues with road generation
+> Fixed calculation for valid input
+> Fixed UI resizing in relation to other changes
+> Restored player positioning
+> Removed collider resizing code from Player
+> Created interface for GameController
+> Refactored all modules to work with game interface
+> Added state check to stop over triggering of small power if you die while picking it up
+> Fixed positioning of power up instructions
+> Fixed positioning and spawning of power up
+
+
