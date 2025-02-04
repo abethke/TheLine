@@ -6,7 +6,10 @@ public class MainMenu : OverlayScreenBase
     }
     public void ClickedKeepGoing()
     {
-        game.StartGame();
+        if (game.state == GameStates.Paused)
+        {
+            game.StartGame();
+        }
         gameObject.SetActive(false);
     }
     public void ClickedTryAgain()

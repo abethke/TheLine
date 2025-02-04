@@ -113,6 +113,7 @@ public class GameController : MonoBehaviour, IGameController
             case GameStates.ActiveGame:
                 _score += Time.deltaTime * 10f;
                 break;
+            case GameStates.Paused:
             case GameStates.GameOver:
                 // do nothing
                 break;
@@ -155,7 +156,6 @@ public class GameController : MonoBehaviour, IGameController
         yield return new WaitForSeconds(3f);
 
         _gameOver.gameObject.SetActive(true);
-        _instructions.FadeIn();
     }
     public void ResetGame()
     {
@@ -171,6 +171,8 @@ public class GameController : MonoBehaviour, IGameController
         _roadBuilder.Reset();
         _roadBuilder.GenerateStartWalls();
 
+        _instructions.FadeIn();
+
         _state = GameStates.WaitingToStart;
     }
     #endregion Game Loop
@@ -181,7 +183,10 @@ public class GameController : MonoBehaviour, IGameController
             return;
 
         Utils.Log("Show main menu", GameDebugger.instance.debugAppLogic || GameDebugger.instance.debugUserInput);
-        _state = GameStates.WaitingToStart;
+        if (_state == GameStates.ActiveGame)
+        {
+            _state = GameStates.Paused;
+        }
         _mainMenu.gameObject.SetActive(true);
     }
     public float score
@@ -196,15 +201,6 @@ public class GameController : MonoBehaviour, IGameController
     {
         set { _invincible = value; }
         get { return _invincible; }
-    }
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.red;
-        Gizmos.DrawLine(new Vector2(_calculated.buildXStart, _calculated.ignoreInputBelowY),
-            new Vector2(_calculated.buildXStart + _calculated.worldWidth, _calculated.ignoreInputBelowY));
-        Gizmos.color = Color.green;
-        Gizmos.DrawLine(new Vector2(_calculated.buildXStart, _calculated.ignoreInputAboveY),
-            new Vector2(_calculated.buildXStart + _calculated.worldWidth, _calculated.ignoreInputAboveY));
     }
 
     protected CalculatedValues _calculated = new CalculatedValues();

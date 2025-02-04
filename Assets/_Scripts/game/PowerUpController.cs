@@ -2,26 +2,27 @@ using UnityEngine;
 
 public class PowerUpController : MonoBehaviour
 {
-    void OnDestroy()
-    {
-        _roadBuilder.RoadSegmentSpawned.RemoveListener(OnRoadSpawned);
-    }
     public void Init(CalculatedValues in_values, RoadBuilder in_roadBuilder)
     {
         _calculated = in_values;
         _roadBuilder = in_roadBuilder;
         _roadBuilder.RoadSegmentSpawned.AddListener(OnRoadSpawned);
 
+        _offscreenPosition = Vector3.one * _calculated.worldWidth * 3f;
+
         // resize the power pickup
         _powerPickup.transform.localScale = _calculated.playerSize * 0.5f * Vector3.one;
-        _powerPickup.gameObject.SetActive(false);
+        DeactivatePickup();
         // randomize spawn start
         _segmentsUntilPowerUp = Random.Range(_numSegmentsUntilPowerUpMin, _numSegmentsUntilPowerUpMax);
     }
+    protected void OnDestroy()
+    {
+        _roadBuilder.RoadSegmentSpawned.RemoveListener(OnRoadSpawned);
+    }
     public void Reset()
     {
-        _powerPickup.gameObject.SetActive(false);
-        _powerPickup.transform.position = Vector3.one * -100;
+        DeactivatePickup();
         // randomize spawn start
         _segmentsUntilPowerUp = Random.Range(_numSegmentsUntilPowerUpMin, _numSegmentsUntilPowerUpMax);
     }
@@ -36,8 +37,13 @@ public class PowerUpController : MonoBehaviour
         _powerPickup.transform.position = _powerPickup.transform.position.PlusY(_calculated.moveSpeed * Time.deltaTime);
         if (_powerPickup.transform.position.y < _calculated.removeWallsBelowY)
         {
-            _powerPickup.gameObject.SetActive(false);
+            DeactivatePickup();
         }
+    }
+    protected void DeactivatePickup()
+    {
+            _powerPickup.transform.position = _offscreenPosition;
+            _powerPickup.gameObject.SetActive(false);
     }
     protected void OnRoadSpawned()
     {
@@ -83,6 +89,7 @@ public class PowerUpController : MonoBehaviour
 
     protected CalculatedValues _calculated;
     protected RoadBuilder _roadBuilder;
+    protected Vector3 _offscreenPosition;
 
     public IGameController game;
 

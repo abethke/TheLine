@@ -49,6 +49,12 @@ public class Player : MonoBehaviour
         {
             Time.timeScale = 1f;
         }
+
+        if (Input.GetKey(KeyCode.H))
+        {
+            Time.timeScale = 0.5f;
+        }
+
         // dev cheat for invincible
         if (Input.GetKey(KeyCode.I))
         {
