@@ -114,5 +114,11 @@ Development Log 2 - Revisions based on feedback
 - Added state check to stop over triggering of small power if you die while picking it up
 - Fixed positioning of power up instructions
 - Fixed positioning and spawning of power up
+> Deprecated and deleted CameraResizer and related
+> Removed temporary Gizmos code
+> Created an off screen position for power pickup and added code to move it there when inactive
+> Added half time dev cheat
+> Adjusted main menu handling to differentiate between access during inactive game  vs access during game triggering a pause and how the app handles closing the main afterwards
+> Adjusted timing of when instructions fade back in during GameOver handling
 
 
