@@ -4,6 +4,10 @@ using UnityEngine.EventSystems;
 
 public class Player : MonoBehaviour
 {
+    protected void Start()
+    {
+        _game = ServiceManager.instance.Get(Services.GAME) as IGameController;
+    }
     public void Init(CalculatedValues in_values)
     {
         _calculated = in_values;
@@ -22,11 +26,11 @@ public class Player : MonoBehaviour
 #if UNITY_EDITOR
         UpdateForDevCheats();
 #endif
-        if (game.state != GameStates.ActiveGame)
+        if (_game.state != GameStates.ActiveGame)
             return;
 
         // only allow user input in the valid input region at the bottom of the screen
-        if ((Input.GetMouseButtonDown(0) || Input.GetMouseButton(0)) && game.IsInputValid())
+        if ((Input.GetMouseButtonDown(0) || Input.GetMouseButton(0)) && _game.IsInputValid())
         {
             // check if the player is interacting with a UI element
             if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null)
@@ -95,7 +99,7 @@ public class Player : MonoBehaviour
         float startedAt = Time.time;
         float blinkDuration = 0.15f;
 
-        game.invincible = true;
+        _game.invincible = true;
         _powerDisplay.SetText("Break the walls!");
         _powerDisplay.SetTextColor(GameConfiguration.instance.textYellow);
         _powerDisplay.gameObject.SetActive(true);
@@ -113,7 +117,7 @@ public class Player : MonoBehaviour
 
         _powerDisplay.SetText("0");
         _powerDisplay.gameObject.SetActive(false);
-        game.invincible = false;
+        _game.invincible = false;
 
         _playerImage.color = GameConfiguration.instance.playerColour;
 
@@ -135,7 +139,7 @@ public class Player : MonoBehaviour
             _powerDisplay.SetTextColor((displayTime > 4) ? GameConfiguration.instance.textYellow : GameConfiguration.instance.textRed);
             _powerDisplay.SetText($"{displayTime}sec");
 
-            if (game.state == GameStates.GameOver)
+            if (_game.state == GameStates.GameOver)
             {
                 yield break;
             }
@@ -169,7 +173,7 @@ public class Player : MonoBehaviour
 
     protected Coroutine _playerPowerRoutine;
 
-    public IGameController game;
+    protected IGameController _game;
 
     [Header("References")]
     [SerializeField]

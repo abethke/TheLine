@@ -7,13 +7,7 @@ public class GameController : MonoBehaviour, IGameController
     #region Life Cycle
     protected void Awake()
     {
-        _mainMenu.game = this;
-        _gameOver.game = this;
-        _powerDisplay.game = this;
-        _roadBuilder.game = this;
-        _player.game = this;
-        _powerUpController.game = this;
-        _scoreDisplay.game = this;
+        ServiceManager.instance.Add(Services.GAME, this);
     }
     protected void Start()
     {
@@ -97,6 +91,10 @@ public class GameController : MonoBehaviour, IGameController
         RectTransform powerDisplayRect = _powerDisplay.gameObject.RectTransform();
         powerDisplayRect.sizeDelta = powerDisplayRect.sizeDelta.SetY(instructionsHeight * 0.5f);
         powerDisplayRect.anchoredPosition = new Vector2(0, instructionsY + instructionsHeight);
+    }
+    protected void OnDestroy()
+    {
+        ServiceManager.instance.Remove(Services.GAME);
     }
     #endregion Life Cycle
     #region Game Loop

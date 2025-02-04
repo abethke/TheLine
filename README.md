@@ -120,5 +120,5 @@ Development Log 2 - Revisions based on feedback
 - Added half time dev cheat
 - Adjusted main menu handling to differentiate between access during inactive game  vs access during game triggering a pause and how the app handles closing the main afterwards
 - Adjusted timing of when instructions fade back in during GameOver handling
-
-
+> Added ServiceManager to generically handle object referencing 
+> Refactored where needed to support ServiceManager and decouple direct dependency injection for the IGameController/GameController

@@ -5,12 +5,14 @@ public class PowerInstructions : MonoBehaviour
 {
     void Start()
     {
+        _game = ServiceManager.instance.Get(Services.GAME) as IGameController;
+
         RectTransform canvasRect = _canvas.GetComponent<RectTransform>();
         _scaleFactorForResolution = canvasRect.rect.width / Screen.width;
     }
     void Update()
     {
-        if (game.state != GameStates.ActiveGame)
+        if (_game.state != GameStates.ActiveGame)
             return;
 
         Vector3 worldToScreenPosition = Camera.main.WorldToScreenPoint(_player.transform.position) * _scaleFactorForResolution;
@@ -28,7 +30,7 @@ public class PowerInstructions : MonoBehaviour
 
     protected float _scaleFactorForResolution;
 
-    public IGameController game;
+    protected IGameController _game;
 
     [Header("References")]
     [SerializeField]

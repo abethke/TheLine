@@ -3,6 +3,11 @@ using UnityEngine;
 
 public class WallSegment : MonoBehaviour
 {
+    protected void Start()
+    {
+        _game = ServiceManager.instance.Get(Services.GAME) as IGameController;
+        _roadBuilder= ServiceManager.instance.Get(Services.ROAD_BUILDER) as RoadBuilder;
+    }
     public void Reset()
     {
         if (_blink != null)
@@ -14,16 +19,16 @@ public class WallSegment : MonoBehaviour
     }
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (game.state == GameStates.ActiveGame)
+        if (_game.state == GameStates.ActiveGame)
         {
-            if (game.invincible)
+            if (_game.invincible)
             {
-                roadBuilder.RemoveWall(this);
+                _roadBuilder.RemoveWall(this);
             }
             else
             {
                 _blink = StartCoroutine(BlinkRoutine());
-                game.GameOver();
+                _game.GameOver();
             }
         }
     }
@@ -42,12 +47,9 @@ public class WallSegment : MonoBehaviour
     }
 
     protected Coroutine _blink;
-
-    public IGameController game;
+    protected IGameController _game;
+    protected RoadBuilder _roadBuilder;
 
     [Header("References")]
     public SpriteRenderer sprite;
-
-    [Header("Dynamic")]
-    public RoadBuilder roadBuilder;
 }

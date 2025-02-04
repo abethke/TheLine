@@ -1,22 +1,26 @@
 public class MainMenu : OverlayScreenBase
 {
+    protected void Start()
+    {
+        _game = ServiceManager.instance.Get(Services.GAME) as IGameController;
+    }
     public void OnEnable()
     {
         FadeIn();
     }
     public void ClickedKeepGoing()
     {
-        if (game.state == GameStates.Paused)
+        if (_game.state == GameStates.Paused)
         {
-            game.StartGame();
+            _game.StartGame();
         }
         gameObject.SetActive(false);
     }
     public void ClickedTryAgain()
     {
-        game.ResetGame();
+        _game.ResetGame();
         gameObject.SetActive(false);
     }
 
-    public IGameController game;
+    protected IGameController _game;
 }

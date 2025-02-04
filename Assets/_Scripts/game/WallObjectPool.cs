@@ -3,9 +3,8 @@ using UnityEngine.Pool;
 
 public class WallObjectPool : MonoBehaviour
 {
-    public void Init(IGameController in_game, int in_size, float in_wallWidth, float in_wallHeight)
+    public void Init(int in_size, float in_wallWidth, float in_wallHeight)
     {
-        _game = in_game;
         _wallWidth = in_wallWidth;
         _wallHeight = in_wallHeight;
 
@@ -30,8 +29,6 @@ public class WallObjectPool : MonoBehaviour
         instance.transform.localScale = new Vector3(_wallWidth, _wallHeight, 1);
 
         WallSegment wall = instance.GetComponent<WallSegment>();
-        wall.game = _game;
-        wall.roadBuilder = _roadBuilder;
         instance.SetActive(false);
         return wall;
     }
@@ -50,7 +47,6 @@ public class WallObjectPool : MonoBehaviour
     }
 
     protected IObjectPool<WallSegment> _pool;
-    protected IGameController _game;
 
     protected float _wallWidth;
     protected float _wallHeight;
@@ -60,8 +56,4 @@ public class WallObjectPool : MonoBehaviour
     protected GameObject _wallPrefab;
     [SerializeField]
     protected Transform _wallContainer;
-
-    [Header("References")]
-    [SerializeField]
-    protected RoadBuilder _roadBuilder;
 }

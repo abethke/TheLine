@@ -4,11 +4,23 @@ using UnityEngine.Events;
 
 public class RoadBuilder : MonoBehaviour
 {
+    protected void Awake()
+    {
+        ServiceManager.instance.Add(Services.ROAD_BUILDER, this);
+    }
+    protected void Start()
+    {
+        _game = ServiceManager.instance.Get(Services.GAME) as IGameController;
+    }
     public void Init(CalculatedValues in_values)
     {
         _calculated = in_values;
         CreateObjectPoolForWalls();
         CreateRoadGenerationData();
+    }
+    protected void OnDestroy()
+    {
+        ServiceManager.instance.Remove(Services.ROAD_BUILDER);
     }
     public void Reset()
     {
@@ -26,7 +38,7 @@ public class RoadBuilder : MonoBehaviour
         // the one we're moving to, plus the build row
         int maxPoolSize = (GameConfiguration.instance.wallRows + 1) * GameConfiguration.instance.wallColumns - 2;
         Utils.Log($"Initializing object pool for walls with max calculated size: {maxPoolSize}", GameDebugger.instance.debugAppLogic);
-        _wallPool.Init(game, maxPoolSize, _calculated.wallWidth, _calculated.wallHeight);
+        _wallPool.Init(maxPoolSize, _calculated.wallWidth, _calculated.wallHeight);
     }
     protected void CreateRoadGenerationData()
     {
@@ -46,7 +58,7 @@ public class RoadBuilder : MonoBehaviour
     }
     void Update()
     {
-        if (game.state != GameStates.ActiveGame)
+        if (_game.state != GameStates.ActiveGame)
             return;
 
         foreach (WallSegment wall in _walls)
@@ -217,7 +229,7 @@ public class RoadBuilder : MonoBehaviour
     protected int _segmentIndex = 0;
     protected int _lastPathDelta;
 
-    public IGameController game;
+    protected IGameController _game;
 
     [Header("Dynamic")]
     public UnityEvent RoadSegmentSpawned = new UnityEvent();

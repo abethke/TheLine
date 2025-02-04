@@ -5,17 +5,15 @@ public class ScoreDisplay : MonoBehaviour
 {
     void Start()
     {
+        _game = ServiceManager.instance.Get(Services.GAME) as IGameController;
         _display.text = "0";
     }
     void Update()
     {
-        if (game.state == GameStates.WaitingToStart)
-            return;
-
-        _display.text = Utils.ScoreForDisplay(game.score);
+        _display.text = Utils.ScoreForDisplay(_game.score);
     }
 
-    public IGameController game;
+    protected IGameController _game;
     [Header("References")]
     [SerializeField]
     protected TMP_Text _display;

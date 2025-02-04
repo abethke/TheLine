@@ -2,6 +2,10 @@ using UnityEngine;
 
 public class PowerUpController : MonoBehaviour
 {
+    protected void Start()
+    {
+        _game = ServiceManager.instance.Get(Services.GAME) as IGameController;
+    }
     public void Init(CalculatedValues in_values, RoadBuilder in_roadBuilder)
     {
         _calculated = in_values;
@@ -28,7 +32,7 @@ public class PowerUpController : MonoBehaviour
     }
     protected void Update()
     {
-        if (game.state != GameStates.ActiveGame)
+        if (_game.state != GameStates.ActiveGame)
             return;
 
         if (!_powerPickup.gameObject.activeSelf)
@@ -71,7 +75,7 @@ public class PowerUpController : MonoBehaviour
     }
     public void ActivatePower()
     {
-        if (game.state != GameStates.ActiveGame)
+        if (_game.state != GameStates.ActiveGame)
             return;
 
         Utils.Log("Activating power: " + _powerPickup.mode, GameDebugger.instance.debugAppLogic);
@@ -91,7 +95,7 @@ public class PowerUpController : MonoBehaviour
     protected RoadBuilder _roadBuilder;
     protected Vector3 _offscreenPosition;
 
-    public IGameController game;
+    protected IGameController _game;
 
     [Header("Dynamic")]
     [SerializeField]

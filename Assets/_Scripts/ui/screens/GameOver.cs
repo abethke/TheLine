@@ -5,20 +5,22 @@ public class GameOver : OverlayScreenBase
 {
     void OnEnable()
     {
-        _scoreDisplay.text = Utils.ScoreForDisplay(game.score);
+        _game ??= ServiceManager.instance.Get(Services.GAME) as IGameController;
+
+        _scoreDisplay.text = Utils.ScoreForDisplay(_game.score);
         int bestScore = PlayerPrefs.HasKey(BEST_SCORE) ? PlayerPrefs.GetInt(BEST_SCORE) : 0;
         _bestScoreDisplay.text = bestScore.ToString();
         FadeIn();
     }
     public void ClickedTryAgain()
     {
-        game.ResetGame();
+        _game.ResetGame();
         gameObject.SetActive(false);
     }
 
-    public IGameController game;
+    protected IGameController _game;
 
-    [Header("References")]    
+    [Header("References")]
     [SerializeField]
     protected TMP_Text _scoreDisplay;
     [SerializeField]
