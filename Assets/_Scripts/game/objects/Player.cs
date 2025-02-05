@@ -39,7 +39,7 @@ public class Player : MonoBehaviour
                 return;
             }
             Vector3 worldMouse = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            transform.position = worldMouse.SetY(_calculated.playerY).PlusX(-_calculated.playerHalfWidth).SetZ(0);
+            transform.position = worldMouse.SetY(_calculated.playerY).SetZ(0);
         }
     }
 #if UNITY_EDITOR
@@ -126,7 +126,7 @@ public class Player : MonoBehaviour
     protected IEnumerator SmallRoutine()
     {
         Utils.Log("[Power Up] Small!", GameDebugger.instance.debugAppLogic);
-        float playerSmallSize = _calculated.wallWidth * GameConfiguration.instance.playerSizeAsPercentOfWallHeight * 0.5f;
+        float playerSmallSize = _calculated.wallWidth * GameConfiguration.instance.playerSizeAsPercentOfWallWidth * 0.5f;
         ResizePlayer(playerSmallSize);
 
         _powerDisplay.SetText(string.Empty);
@@ -159,7 +159,6 @@ public class Player : MonoBehaviour
     protected void ResizePlayer(float in_size)
     {
         transform.localScale = in_size * Vector3.one;
-        _calculated.playerHalfWidth = in_size * 0.5f;
     }
     public bool isPowerActive
     {

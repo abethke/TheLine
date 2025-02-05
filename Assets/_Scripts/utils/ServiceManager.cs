@@ -26,7 +26,7 @@ public class ServiceManager : MonoBehaviour
             _instance = null;
         }
     }
-    public void Add(string in_name, object in_managed)
+    public void Add(Services in_name, object in_managed)
     {
         if (_managed.ContainsKey(in_name))
         {
@@ -35,7 +35,7 @@ public class ServiceManager : MonoBehaviour
         }
         _managed.Add(in_name, in_managed);
     }
-    public object Get(string in_name)
+    public object Get(Services in_name)
     {
         if (!_managed.ContainsKey(in_name))
         {
@@ -44,9 +44,9 @@ public class ServiceManager : MonoBehaviour
         }
         return _managed[in_name];
     }
-    public void Remove(string in_name)
+    public void Remove(Services in_name)
     {
         _managed.Remove(in_name);
     }
-    protected Dictionary<string, object> _managed = new();
+    protected Dictionary<Services, object> _managed = new();
 }

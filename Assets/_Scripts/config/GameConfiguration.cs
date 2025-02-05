@@ -34,7 +34,7 @@ public class GameConfiguration : ScriptableObject
     // Used by calculations based on wall size 
     public float instructionsOffsetAsPercentOfWallHeight = 1f;
     public float instructionsHeightAsPercentOfWallHeight = 0.8f;
-    public float playerSizeAsPercentOfWallHeight = 0.5f;
+    public float playerSizeAsPercentOfWallWidth = 0.5f;
     public float movementSpeedAsPercentOfWallHeight = 2.5f;
 
     // timer

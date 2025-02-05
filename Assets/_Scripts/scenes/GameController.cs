@@ -52,8 +52,7 @@ public class GameController : MonoBehaviour, IGameController
         Utils.Log($"Building layout from: {_calculated.buildXStart}, {_calculated.buildYStart}", GameDebugger.instance.debugResolutionCalculations);
         Utils.Log($"Walls removed at: {_calculated.removeWallsBelowY}", GameDebugger.instance.debugResolutionCalculations);
 
-        _calculated.playerSize = _calculated.wallWidth * _config.playerSizeAsPercentOfWallHeight;
-        _calculated.playerHalfWidth = _calculated.playerSize * 0.5f;
+        _calculated.playerSize = _calculated.wallWidth * _config.playerSizeAsPercentOfWallWidth;
         _calculated.playerStartX = 0;
         _calculated.playerY = _calculated.buildYStart;
         Utils.Log($"Player size: {_calculated.playerSize}", GameDebugger.instance.debugResolutionCalculations);

@@ -11,7 +11,6 @@ public class CalculatedValues
     public float addWallsAboveY;
     public float removeWallsBelowY;
     public float playerSize;
-    public float playerHalfWidth;
     public float playerStartX;
     public float playerY;
     public float moveSpeed;

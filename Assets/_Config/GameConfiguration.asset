@@ -36,9 +36,8 @@ MonoBehaviour:
   - {x: -4, y: 0}
   instructionsOffsetAsPercentOfWallHeight: 1
   instructionsHeightAsPercentOfWallHeight: 0.8
-  playerSizeAsPercentOfWallHeight: 0.5
-  movementSpeedAsPercentOfWallHeight: 2.5
-  playerColliderSizeReduction: 1
+  playerSizeAsPercentOfWallWidth: 0.5
+  movementSpeedAsPercentOfWallHeight: 2.4
   fadeDurationInSeconds: 0.3
   smallDurationInSeconds: 10
   invincibleDurationInSeconds: 6
