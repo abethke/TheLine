@@ -112,7 +112,7 @@ public class Player : MonoBehaviour
             float lerp = Mathf.Abs(Mathf.Sin(percent));
             _playerImage.color = Color.Lerp(GameConfiguration.instance.playerColour, GameConfiguration.instance.secondaryYellow, lerp);
 
-            yield return new WaitForFixedUpdate();
+            yield return new WaitForEndOfFrame();
         }
 
         _powerDisplay.SetText("0");
@@ -145,7 +145,7 @@ public class Player : MonoBehaviour
             }
             else
             {
-                yield return new WaitForFixedUpdate();
+                yield return new WaitForEndOfFrame();
             }
         }
 

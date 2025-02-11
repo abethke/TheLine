@@ -42,7 +42,7 @@ public class WallSegment : MonoBehaviour
             float percent = (Time.time - startedAt) / blinkDuration;
             float lerp = Mathf.Abs(Mathf.Sin(percent));
             sprite.color = Color.Lerp(GameConfiguration.instance.blockColour, GameConfiguration.instance.blockHitColour, lerp);
-            yield return new WaitForFixedUpdate();
+            yield return new WaitForEndOfFrame();
         }
     }
 
