@@ -12,4 +12,4 @@ The assignment was to clone this game minus the 6x paths, river jump, and music/
 - Top bar menu items were positioned to stop collision with iPhone camera. Normally I would add special handling to move these elements based on device type checking rather than add the gutter space.
 
 
-Original development log and technical test could are on a branch. 
+Original development log and technical test project has been branched.
