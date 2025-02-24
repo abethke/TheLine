@@ -1,33 +1,36 @@
-public static class ArrayExtensions
+namespace ALine
 {
-    static public void Shuffle<T>(this T[] in_array)
+    public static class ArrayExtensions
     {
-        for (int i = in_array.Length - 1; i > 0; i--)
+        static public void Shuffle<T>(this T[] in_array)
         {
-            int randomIndex = UnityEngine.Random.Range(0, i + 1);
-            T tmp = in_array[i];
-            in_array[i] = in_array[randomIndex];
-            in_array[randomIndex] = tmp;
-        }
-    }
-    static public string ToStringForReal<T>(this T[] in_array)
-    {
-        string description = "";
-        for (int i = 0; i < in_array.Length; i++)
-        {
-            if (in_array[i] == null)
+            for (int i = in_array.Length - 1; i > 0; i--)
             {
-                description += "[NULL]";
-            }
-            else
-            {
-                description += in_array[i].ToString();
-            }
-            if (i != in_array.Length - 1)
-            {
-                description += ", ";
+                int randomIndex = UnityEngine.Random.Range(0, i + 1);
+                T tmp = in_array[i];
+                in_array[i] = in_array[randomIndex];
+                in_array[randomIndex] = tmp;
             }
         }
-        return description;
+        static public string ToStringForReal<T>(this T[] in_array)
+        {
+            string description = "";
+            for (int i = 0; i < in_array.Length; i++)
+            {
+                if (in_array[i] == null)
+                {
+                    description += "[NULL]";
+                }
+                else
+                {
+                    description += in_array[i].ToString();
+                }
+                if (i != in_array.Length - 1)
+                {
+                    description += ", ";
+                }
+            }
+            return description;
+        }
     }
 }

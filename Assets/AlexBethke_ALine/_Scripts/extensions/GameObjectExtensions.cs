@@ -1,8 +1,11 @@
 using UnityEngine;
-public static class GameObjectExtensions
+namespace ALine
 {
-    static public RectTransform RectTransform(this GameObject in_object)
+    public static class GameObjectExtensions
     {
-        return in_object.GetComponent<RectTransform>();
+        static public RectTransform RectTransform(this GameObject in_object)
+        {
+            return in_object.GetComponent<RectTransform>();
+        }
     }
 }
